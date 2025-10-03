@@ -819,7 +819,8 @@ export class QuantumFieldEffect extends LayerEffect {
             // Perfect looping configuration
             perfectLoop: this.config.perfectLoop,
 
-            renderMode: this.config.renderMode[Math.floor(renderModeSeed * this.config.renderMode.length)],
+            renderMode: getRandomFromArray(this.config.renderMode),
+
 
             // Keep ranges for animated visual effects
             glowIntensity: this.config.glowIntensity,
