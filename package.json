@@ -1,7 +1,7 @@
 {
   "name": "my-nft-effect-plugin-test",
   "version": "1.0.0",
-  "description": "SpiralWave effect plugin for NFT generation",
+  "description": "",
   "main": "plugin.js",
   "type": "module",
   "scripts": {
