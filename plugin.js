@@ -1,23 +1,32 @@
-// Import the effect classes at the top level
-import { QuantumFieldEffect } from './src/effects/primaryEffects/QuantumField/QuantumFieldEffect.js';
-import { QuantumFieldConfig } from './src/effects/primaryEffects/QuantumField/QuantumFieldConfig.js';
-import { FlowFieldEffect } from './src/effects/secondaryEffects/FlowField/index.js';
-import { FlowFieldConfig } from './src/effects/secondaryEffects/FlowField/index.js';
-
-// Import required registry items from my-nft-gen
-import { EffectCategories } from 'my-nft-gen/src/core/registry/EffectCategories.js';
-
-// Set the config class reference
-QuantumFieldEffect._configClass_ = QuantumFieldConfig;
-FlowFieldEffect._configClass_ = FlowFieldConfig;
-
 // Plugin metadata
 export const name = 'my-nft-zencoder-generated-effects-plugin';
+export const version = '1.0.0';
 
 // Plugin registration function that will be called by my-nft-gen's PluginManager
 export async function register(EffectRegistry, PositionRegistry) {
     try {
-        console.log('🔄 Registering plugin effects...');
+        console.log('🔄 [Plugin] Starting registration...');
+        console.log('🔄 [Plugin] Current file:', import.meta.url);
+        console.log('🔄 [Plugin] EffectRegistry:', EffectRegistry ? 'Available' : 'Missing');
+        console.log('🔄 [Plugin] PositionRegistry:', PositionRegistry ? 'Available' : 'Missing');
+        
+        // Import the effect classes dynamically to catch import errors
+        console.log('📦 [Plugin] Importing QuantumField effect...');
+        const { QuantumFieldEffect } = await import('./src/effects/primaryEffects/QuantumField/QuantumFieldEffect.js');
+        const { QuantumFieldConfig } = await import('./src/effects/primaryEffects/QuantumField/QuantumFieldConfig.js');
+        
+        console.log('📦 [Plugin] Importing FlowField effect...');
+        const { FlowFieldEffect } = await import('./src/effects/secondaryEffects/FlowField/index.js');
+        const { FlowFieldConfig } = await import('./src/effects/secondaryEffects/FlowField/index.js');
+        
+        console.log('📦 [Plugin] Importing EffectCategories...');
+        const { EffectCategories } = await import('my-nft-gen/src/core/registry/EffectCategories.js');
+        
+        // Set the config class reference
+        QuantumFieldEffect._configClass_ = QuantumFieldConfig;
+        FlowFieldEffect._configClass_ = FlowFieldConfig;
+        
+        console.log('🔄 [Plugin] All imports successful, registering effects...');
 
         // Register QuantumField effect
         console.log(`📦 Effect name: ${QuantumFieldEffect._name_}`);
@@ -57,11 +66,16 @@ export async function register(EffectRegistry, PositionRegistry) {
 
         return true;
     } catch (error) {
-        console.error('❌ error', error.message);
-        console.error('Stack:', error.stack);
+        console.error('❌ [Plugin] Registration failed:', error.message);
+        console.error('❌ [Plugin] Error name:', error.name);
+        console.error('❌ [Plugin] Stack:', error.stack);
+        
+        // Provide more helpful error messages
+        if (error.message.includes('Cannot find module') || error.message.includes('Cannot find package')) {
+            console.error('💡 [Plugin] Hint: Make sure my-nft-gen is properly installed in the plugin directory');
+            console.error('💡 [Plugin] Try running: npm install in the plugin directory');
+        }
+        
         throw error;
     }
 }
-
-// Also export the effect classes directly for backward compatibility
-export { QuantumFieldEffect, QuantumFieldConfig, FlowFieldEffect, FlowFieldConfig };

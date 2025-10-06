@@ -796,10 +796,10 @@ export class QuantumFieldEffect extends LayerEffect {
             cornerTransitionSpeed: this.config.cornerTransitionSpeed,
             
             // Algorithm configurations - deterministic selection
-            interpolationAlgorithm: this.config.interpolationAlgorithm[Math.floor(interpolationSeed * this.config.interpolationAlgorithm.length)],
-            fluctuationAlgorithm: this.config.fluctuationAlgorithm[Math.floor(fluctuationSeed * this.config.fluctuationAlgorithm.length)],
-            pulseAlgorithm: this.config.pulseAlgorithm[Math.floor(pulseSeed * this.config.pulseAlgorithm.length)],
-            curveAlgorithm: this.config.curveAlgorithm[Math.floor(curveSeed * this.config.curveAlgorithm.length)],
+            interpolationAlgorithm: getRandomFromArray(this.config.interpolationAlgorithm),
+            fluctuationAlgorithm: getRandomFromArray(this.config.fluctuationAlgorithm),
+            pulseAlgorithm: getRandomFromArray(this.config.pulseAlgorithm),
+            curveAlgorithm: getRandomFromArray(this.config.curveAlgorithm),
 
             particleColor: this.config.particleColor.getColor(settings),
             connectionColor: this.config.connectionColor.getColor(settings),
