@@ -53,6 +53,11 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { FluxWeaveEffect } = await import('./src/effects/finalImageEffects/FluxWeave/FluxWeaveEffect.js');
         const { FluxWeaveConfig } = await import('./src/effects/finalImageEffects/FluxWeave/FluxWeaveConfig.js');
         
+        // Import ChromaticAberration FINAL effect
+        console.log('📦 [Plugin] Importing ChromaticAberration final effect...');
+        const { ChromaticAberrationEffect } = await import('./src/effects/finalImageEffects/ChromaticAberration/ChromaticAberrationEffect.js');
+        const { ChromaticAberrationConfig } = await import('./src/effects/finalImageEffects/ChromaticAberration/ChromaticAberrationConfig.js');
+        
         // Set the config class reference
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
@@ -63,6 +68,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         OrbitBloomEffect._configClass_ = OrbitBloomConfig;
         VoidEchoEffect._configClass_ = VoidEchoConfig;
         FluxWeaveEffect._configClass_ = FluxWeaveConfig;
+        ChromaticAberrationEffect._configClass_ = ChromaticAberrationConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -199,6 +205,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: FluxWeaveEffect._tags_ || ['effect', 'final', 'post', 'wave', 'flow', 'fabric', 'animated']
             });
             console.log(`✅ Registered: ${FluxWeaveEffect._name_} as FINAL effect`);
+        }
+
+        // Register ChromaticAberration effect as FINAL
+        console.log(`📦 Effect name: ${ChromaticAberrationEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(ChromaticAberrationEffect._name_)) {
+            console.log(`ℹ️ Effect '${ChromaticAberrationEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(ChromaticAberrationEffect, EffectCategories.FINAL, {
+                displayName: ChromaticAberrationEffect._displayName_ || 'Chromatic Aberration',
+                description: ChromaticAberrationEffect._description_ || 'RGB channel separation with dynamic displacement. The operator in the noise. Perfect loop.',
+                version: ChromaticAberrationEffect._version_ || '1.0.0',
+                author: ChromaticAberrationEffect._author_ || 'Zencoder',
+                tags: ChromaticAberrationEffect._tags_ || ['effect', 'final', 'post', 'glitch', 'chromatic', 'cyberpunk', 'animated']
+            });
+            console.log(`✅ Registered: ${ChromaticAberrationEffect._name_} as FINAL effect`);
         }
 
         // Verify registration in the global registry
