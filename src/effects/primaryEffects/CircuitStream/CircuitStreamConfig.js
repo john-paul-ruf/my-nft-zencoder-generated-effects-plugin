@@ -11,6 +11,8 @@ export class CircuitStreamConfig extends EffectConfig {
                     nodeCount = 20,
                     nodeRadiusMin = 8,
                     nodeRadiusMax = 16,
+                    nodePulseIntensityMin = 0.3,
+                    nodePulseIntensityMax = 1.0,
 
                     // Data Packet Parameters
                     packetCount = 25,
@@ -25,10 +27,14 @@ export class CircuitStreamConfig extends EffectConfig {
                     signalWaveCount = 8,
                     signalWaveSpeedMin = 0.8,
                     signalWaveSpeedMax = 1.5,
+                    signalWaveAmplitudeMin = 0.3,
+                    signalWaveAmplitudeMax = 0.8,
                     signalDecayRateMin = 0.05,
                     signalDecayRateMax = 0.15,
 
                     // Node Charge Animation
+                    gateBlinkFrequencyMin = 0.5,
+                    gateBlinkFrequencyMax = 2.0,
                     gateChargeTimeMin = 40,
                     gateChargeTimeMax = 120,
                     gateDischargeTimeMin = 20,
@@ -37,6 +43,8 @@ export class CircuitStreamConfig extends EffectConfig {
                     // Trace Pulse Animation
                     energyPulseFrequencyMin = 0.2,
                     energyPulseFrequencyMax = 0.6,
+                    energyFlowSpeedMin = 0.5,
+                    energyFlowSpeedMax = 1.5,
 
                     // Visual Style Parameters
                     traceOpacityMin = 0.3,
@@ -80,6 +88,8 @@ export class CircuitStreamConfig extends EffectConfig {
         this.nodeCount = nodeCount;
         this.nodeRadiusMin = nodeRadiusMin;
         this.nodeRadiusMax = nodeRadiusMax;
+        this.nodePulseIntensityMin = nodePulseIntensityMin;
+        this.nodePulseIntensityMax = nodePulseIntensityMax;
 
         // Data Packet Parameters
         this.packetCount = packetCount;
@@ -94,10 +104,14 @@ export class CircuitStreamConfig extends EffectConfig {
         this.signalWaveCount = signalWaveCount;
         this.signalWaveSpeedMin = signalWaveSpeedMin;
         this.signalWaveSpeedMax = signalWaveSpeedMax;
+        this.signalWaveAmplitudeMin = signalWaveAmplitudeMin;
+        this.signalWaveAmplitudeMax = signalWaveAmplitudeMax;
         this.signalDecayRateMin = signalDecayRateMin;
         this.signalDecayRateMax = signalDecayRateMax;
 
         // Node Charge Animation
+        this.gateBlinkFrequencyMin = gateBlinkFrequencyMin;
+        this.gateBlinkFrequencyMax = gateBlinkFrequencyMax;
         this.gateChargeTimeMin = gateChargeTimeMin;
         this.gateChargeTimeMax = gateChargeTimeMax;
         this.gateDischargeTimeMin = gateDischargeTimeMin;
@@ -106,6 +120,8 @@ export class CircuitStreamConfig extends EffectConfig {
         // Trace Pulse Animation
         this.energyPulseFrequencyMin = energyPulseFrequencyMin;
         this.energyPulseFrequencyMax = energyPulseFrequencyMax;
+        this.energyFlowSpeedMin = energyFlowSpeedMin;
+        this.energyFlowSpeedMax = energyFlowSpeedMax;
 
         // Visual Style Parameters
         this.traceOpacityMin = traceOpacityMin;

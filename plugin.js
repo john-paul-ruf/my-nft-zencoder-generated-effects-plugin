@@ -23,6 +23,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { CircuitStreamEffect } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamEffect.js');
         const { CircuitStreamConfig } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamConfig.js');
         
+        console.log('📦 [Plugin] Importing MetatronCube effect...');
+        const { MetatronCubeEffect } = await import('./src/effects/primaryEffects/MetatronCube/MetatronCubeEffect.js');
+        const { MetatronCubeConfig } = await import('./src/effects/primaryEffects/MetatronCube/MetatronCubeConfig.js');
+        
         console.log('📦 [Plugin] Importing EffectCategories...');
         const { EffectCategories } = await import('my-nft-gen/src/core/registry/EffectCategories.js');
         
@@ -30,6 +34,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
         CircuitStreamEffect._configClass_ = CircuitStreamConfig;
+        MetatronCubeEffect._configClass_ = MetatronCubeConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -61,6 +66,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: CircuitStreamEffect._tags_ || ['effect', 'primary', 'circuit', 'digital', 'animated', 'data-flow']
             });
             console.log(`✅ Registered: ${CircuitStreamEffect._name_} as PRIMARY effect`);
+        }
+
+        // Register MetatronCube effect as PRIMARY
+        console.log(`📦 Effect name: ${MetatronCubeEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(MetatronCubeEffect._name_)) {
+            console.log(`ℹ️ Effect '${MetatronCubeEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(MetatronCubeEffect, EffectCategories.PRIMARY, {
+                displayName: MetatronCubeEffect._displayName_ || 'Metatron Cube',
+                description: MetatronCubeEffect._description_ || 'Sacred geometry effect featuring Metatron\'s Cube with inscribed runes, Platonic solids, and overwhelming mystical detail',
+                version: MetatronCubeEffect._version_ || '1.0.0',
+                author: MetatronCubeEffect._author_ || 'Digital Alchemist',
+                tags: MetatronCubeEffect._tags_ || ['effect', 'primary', 'sacred-geometry', 'metatron', 'mystical', 'animated']
+            });
+            console.log(`✅ Registered: ${MetatronCubeEffect._name_} as PRIMARY effect`);
         }
 
         // Register FlowField effect as SECONDARY
