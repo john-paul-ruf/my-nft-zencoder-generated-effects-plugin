@@ -19,12 +19,17 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { FlowFieldEffect } = await import('./src/effects/secondaryEffects/FlowField/index.js');
         const { FlowFieldConfig } = await import('./src/effects/secondaryEffects/FlowField/index.js');
         
+        console.log('📦 [Plugin] Importing CircuitStream effect...');
+        const { CircuitStreamEffect } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamEffect.js');
+        const { CircuitStreamConfig } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamConfig.js');
+        
         console.log('📦 [Plugin] Importing EffectCategories...');
         const { EffectCategories } = await import('my-nft-gen/src/core/registry/EffectCategories.js');
         
         // Set the config class reference
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
+        CircuitStreamEffect._configClass_ = CircuitStreamConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -41,6 +46,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: QuantumFieldEffect._tags_ || ['effect', 'visual', 'quantum', 'particles', 'animated']
             });
             console.log(`✅ Registered: ${QuantumFieldEffect._name_} as PRIMARY effect`);
+        }
+
+        // Register CircuitStream effect as PRIMARY  
+        console.log(`📦 Effect name: ${CircuitStreamEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(CircuitStreamEffect._name_)) {
+            console.log(`ℹ️ Effect '${CircuitStreamEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(CircuitStreamEffect, EffectCategories.PRIMARY, {
+                displayName: CircuitStreamEffect._displayName_ || 'Circuit Stream',
+                description: CircuitStreamEffect._description_ || 'Animated digital circuit board with flowing data streams and pulsing logic gates',
+                version: CircuitStreamEffect._version_ || '1.0.0',
+                author: CircuitStreamEffect._author_ || 'Zencoder',
+                tags: CircuitStreamEffect._tags_ || ['effect', 'primary', 'circuit', 'digital', 'animated', 'data-flow']
+            });
+            console.log(`✅ Registered: ${CircuitStreamEffect._name_} as PRIMARY effect`);
         }
 
         // Register FlowField effect as SECONDARY
