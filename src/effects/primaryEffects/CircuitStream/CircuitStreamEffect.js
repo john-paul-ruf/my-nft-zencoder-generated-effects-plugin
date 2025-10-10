@@ -1,15 +1,10 @@
 import {LayerEffect} from 'my-nft-gen/src/core/layer/LayerEffect.js';
-import {findOneWayValue} from 'my-nft-gen/src/core/math/findOneWayValue.js';
-import {LayerFactory} from 'my-nft-gen/src/core/factory/layer/LayerFactory.js';
 import {Canvas2dFactory} from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
 import {
     getRandomFromArray,
-    getRandomIntExclusive,
-    getRandomIntInclusive,
     randomId,
     randomNumber,
 } from 'my-nft-gen/src/core/math/random.js';
-import {findValue, FindValueAlgorithm} from 'my-nft-gen/src/core/math/findValue.js';
 import {Settings} from 'my-nft-gen/src/core/Settings.js';
 import {CircuitStreamConfig} from './CircuitStreamConfig.js';
 
@@ -41,38 +36,32 @@ export class CircuitStreamEffect extends LayerEffect {
     }
 
     #generate(settings) {
-        const width = settings.width;
-        const height = settings.height;
-        
+        // Use finalSize from parent class LayerEffect which gets it from settings
+        const width = this.finalSize?.width || 1024;
+        const height = this.finalSize?.height || 1024;
+
+
+
         // Store all pre-generated data for pure function rendering
         this.data = {
             width,
             height,
-            gridColumns: this.config.gridColumns,
-            gridRows: this.config.gridRows,
+            // Grid dimensions will be calculated dynamically based on canvas size
             traceWidth: this.config.traceWidth,
             perfectLoop: this.config.perfectLoop,
-            renderMode: getRandomFromArray(this.config.renderMode),
             showBackgroundGrid: this.config.showBackgroundGrid,
-            showDataBits: this.config.showDataBits,
             useOrthogonalTraces: this.config.useOrthogonalTraces,
             layerOpacity: this.config.layerOpacity,
             layerBlendMode: this.config.layerBlendMode,
-            
-            // Animation algorithms
-            interpolationAlgorithm: getRandomFromArray(this.config.interpolationAlgorithm),
-            pulseAlgorithm: getRandomFromArray(this.config.pulseAlgorithm),
-            waveAlgorithm: getRandomFromArray(this.config.waveAlgorithm),
-            flowAlgorithm: getRandomFromArray(this.config.flowAlgorithm),
-            
+
             // Colors (resolved from ColorPicker)
-            traceColor: this.config.traceColor.getColor(settings),
-            activeTraceColor: this.config.activeTraceColor.getColor(settings),
-            dataPacketColor: this.config.dataPacketColor.getColor(settings),
-            nodeColor: this.config.nodeColor.getColor(settings),
-            nodeCoreColor: this.config.nodeCoreColor.getColor(settings),
-            signalColor: this.config.signalColor.getColor(settings),
-            backgroundGridColor: this.config.backgroundGridColor.getColor(settings),
+            traceColor: this.#getColorFromPicker(this.config.traceColor, settings),
+            activeTraceColor: this.#getColorFromPicker(this.config.activeTraceColor, settings),
+            dataPacketColor: this.#getColorFromPicker(this.config.dataPacketColor, settings),
+            nodeColor: this.#getColorFromPicker(this.config.nodeColor, settings),
+            nodeCoreColor: this.#getColorFromPicker(this.config.nodeCoreColor, settings),
+            signalColor: this.#getColorFromPicker(this.config.signalColor, settings),
+            backgroundGridColor: this.#getColorFromPicker(this.config.backgroundGridColor, settings),
             
             // Generate circuit grid first (needed by other generators)
             grid: null, // Will be assigned below
@@ -101,18 +90,31 @@ export class CircuitStreamEffect extends LayerEffect {
         this.data.nodes = this.#generateNodes(width, height, this.data.grid);
         this.data.packets = this.#generateDataPackets(width, height, this.data.traces);
         this.data.signalWaves = this.#generateSignalWaves(width, height, this.data.nodes);
+
     }
 
     #generateGrid(width, height) {
-        const cellWidth = width / this.config.gridColumns;
-        const cellHeight = height / this.config.gridRows;
+        // Calculate grid size based on canvas dimensions
+        // Aim for roughly square cells around 50-80 pixels
+        const targetCellSize = 64;
+
+        // Calculate columns and rows independently for non-square images
+        const gridColumns = Math.max(6, Math.round(width / targetCellSize));
+        const gridRows = Math.max(6, Math.round(height / targetCellSize));
+
+
+
+        // Actual cell dimensions (may not be square for non-square images)
+        const cellWidth = width / gridColumns;
+        const cellHeight = height / gridRows;
         const grid = [];
-        
-        for (let row = 0; row < this.config.gridRows; row++) {
-            for (let col = 0; col < this.config.gridColumns; col++) {
+
+        // Generate grid points that span the full canvas
+        for (let row = 0; row <= gridRows; row++) {
+            for (let col = 0; col <= gridColumns; col++) {
                 grid.push({
-                    x: col * cellWidth + cellWidth / 2,
-                    y: row * cellHeight + cellHeight / 2,
+                    x: col * cellWidth,
+                    y: row * cellHeight,
                     col,
                     row,
                     hasTrace: Math.random() < this.config.traceDensity,
@@ -125,14 +127,19 @@ export class CircuitStreamEffect extends LayerEffect {
             points: grid,
             cellWidth,
             cellHeight,
+            gridColumns,
+            gridRows
         };
     }
 
     #generateTraces(width, height, grid) {
         const traces = [];
         const traceCount = Math.floor(grid.points.filter(p => p.hasTrace).length / 2);
-        
-        for (let i = 0; i < traceCount; i++) {
+
+        // Ensure we create enough traces to fill the space
+        const minTraces = Math.max(15, traceCount); // At least 15 traces
+
+        for (let i = 0; i < minTraces; i++) {
             const startPoint = getRandomFromArray(grid.points.filter(p => p.hasTrace));
             const endPoint = getRandomFromArray(grid.points.filter(p => p.hasTrace && p !== startPoint));
             
@@ -176,20 +183,25 @@ export class CircuitStreamEffect extends LayerEffect {
 
     #generateNodes(width, height, grid) {
         const nodes = [];
-        const nodeCount = this.config.nodeCount;
-        
+        // Scale node count based on canvas area, maintaining density
+        const area = (width * height) / (1024 * 1024); // Normalize to 1024x1024 reference
+        const scaleFactor = Math.sqrt(area); // Square root for proportional scaling
+        const nodeCount = Math.max(8, Math.round(this.config.nodeCount * scaleFactor));
+
         for (let i = 0; i < nodeCount; i++) {
-            // Place nodes at grid intersections or random positions
-            const useGridPosition = Math.random() > 0.3;
+            // Distribute nodes evenly across the canvas
+            // Mix grid-aligned and random positions for natural look
+            const useGridPosition = Math.random() > 0.5; // 50/50 chance
             let x, y;
-            
+
             if (useGridPosition && grid.points.length > 0) {
                 const gridPoint = getRandomFromArray(grid.points);
                 x = gridPoint.x;
                 y = gridPoint.y;
             } else {
-                x = randomNumber(50, width - 50);
-                y = randomNumber(50, height - 50);
+                // Use full canvas area from edge to edge
+                x = randomNumber(0, width);
+                y = randomNumber(0, height);
             }
             
             nodes.push({
@@ -212,7 +224,10 @@ export class CircuitStreamEffect extends LayerEffect {
 
     #generateDataPackets(width, height, traces) {
         const packets = [];
-        const packetCount = this.config.packetCount;
+        // Scale packet count based on canvas area
+        const area = (width * height) / (1024 * 1024); // Normalize to 1024x1024 reference
+        const scaleFactor = Math.sqrt(area);
+        const packetCount = Math.max(10, Math.round(this.config.packetCount * scaleFactor));
         
         for (let i = 0; i < packetCount; i++) {
             // Assign each packet to a trace
@@ -237,7 +252,10 @@ export class CircuitStreamEffect extends LayerEffect {
 
     #generateSignalWaves(width, height, nodes) {
         const waves = [];
-        const waveCount = this.config.signalWaveCount;
+        // Scale wave count based on canvas area
+        const area = (width * height) / (1024 * 1024); // Normalize to 1024x1024 reference
+        const scaleFactor = Math.sqrt(area);
+        const waveCount = Math.max(3, Math.round(this.config.signalWaveCount * scaleFactor));
         
         for (let i = 0; i < waveCount; i++) {
             // Optionally origin from nodes or random positions
@@ -268,432 +286,288 @@ export class CircuitStreamEffect extends LayerEffect {
         return waves;
     }
 
-    #findValueWithAlgorithm(min, max, period, totalFrames, currentFrame, algorithm) {
-        return findValue(min, max, period, totalFrames, currentFrame, algorithm);
-    }
-
     async invoke(layer, currentFrame, numberOfFrames) {
-        const {ctx} = layer;
-        const {width, height} = this.data;
-
-        // Clear and set blend mode
-        ctx.save();
-        ctx.globalCompositeOperation = this.data.layerBlendMode;
-        ctx.globalAlpha = this.data.layerOpacity;
-
-        // Apply render mode styling
-        this.#applyRenderMode(ctx);
-
-        // Draw background grid if enabled
-        if (this.data.showBackgroundGrid) {
-            this.#drawBackgroundGrid(ctx, currentFrame, numberOfFrames);
-        }
-
-        // Draw circuit traces
-        this.#drawTraces(ctx, currentFrame, numberOfFrames);
-
-        // Draw signal waves
-        this.#drawSignalWaves(ctx, currentFrame, numberOfFrames);
-
-        // Draw nodes/logic gates
-        this.#drawNodes(ctx, currentFrame, numberOfFrames);
-
-        // Draw data packets
-        this.#drawDataPackets(ctx, currentFrame, numberOfFrames);
-
-        ctx.restore();
-
-        // Apply post-processing effects
-        if (this.data.blurAmount > 0) {
-            ctx.filter = `blur(${this.data.blurAmount}px)`;
-        }
-
+        // ✅ SOLID: DIP - Draw circuit stream directly to layer
+        await this.#drawCircuitStream(layer, currentFrame, numberOfFrames);
         return layer;
     }
 
-    #applyRenderMode(ctx) {
-        switch (this.data.renderMode) {
-            case 'digital':
-                // Classic green terminal look
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-                ctx.fillRect(0, 0, this.data.width, this.data.height);
-                break;
-            case 'matrix':
-                // Dark background for matrix effect
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
-                ctx.fillRect(0, 0, this.data.width, this.data.height);
-                break;
-            case 'neon':
-                // Dark background for neon glow
-                ctx.fillStyle = 'rgba(10, 10, 20, 0.9)';
-                ctx.fillRect(0, 0, this.data.width, this.data.height);
-                break;
-            case 'blueprint':
-                // Blueprint style background
-                ctx.fillStyle = 'rgba(0, 20, 60, 0.9)';
-                ctx.fillRect(0, 0, this.data.width, this.data.height);
-                break;
-            case 'hologram':
-                // Holographic effect
-                ctx.fillStyle = 'rgba(0, 10, 30, 0.85)';
-                ctx.fillRect(0, 0, this.data.width, this.data.height);
-                break;
+    async #drawCircuitStream(layer, currentFrame, numberOfFrames) {
+
+        // Create independent canvas following framework pattern
+        const canvas = await Canvas2dFactory.getNewCanvas(this.data.width, this.data.height);
+
+        // Draw all circuit elements using the Canvas2d wrapper
+        await this.#renderCircuitElements(canvas, currentFrame, numberOfFrames);
+
+        // Convert canvas to layer and composite
+        const resultLayer = await canvas.convertToLayer();
+
+        // Apply post-processing effects
+        // ✅ SOLID: SRP - Validate blur constraints per Sharp library requirements
+        if (this.data.blurAmount > 0.3) {
+            // Sharp requires blur between 0.3 and 1000
+            // Only apply blur if amount is meaningful (>= 0.3)
+            const validBlurAmount = Math.min(1000, this.data.blurAmount);
+            await resultLayer.blur(validBlurAmount);
         }
+
+        await resultLayer.adjustLayerOpacity(this.data.layerOpacity);
+        await layer.compositeLayerOver(resultLayer);
     }
 
-    #drawBackgroundGrid(ctx, currentFrame, numberOfFrames) {
+    async #renderCircuitElements(canvas, currentFrame, numberOfFrames) {
+        const {width, height} = this.data;
+
+
+        // Draw background based on render mode
+        await this.#drawBackground(canvas);
+
+        // Draw background grid if enabled
+        if (this.data.showBackgroundGrid) {
+            await this.#drawBackgroundGridToCanvas(canvas, currentFrame, numberOfFrames);
+        }
+
+        // Draw circuit traces
+        await this.#drawTracesToCanvas(canvas, currentFrame, numberOfFrames);
+
+        // Draw signal waves
+        await this.#drawSignalWavesToCanvas(canvas, currentFrame, numberOfFrames);
+
+        // Draw nodes/logic gates
+        await this.#drawNodesToCanvas(canvas, currentFrame, numberOfFrames);
+
+        // Draw data packets
+        await this.#drawDataPacketsToCanvas(canvas, currentFrame, numberOfFrames);
+    }
+
+    async #drawBackground(canvas) {
+        // Don't draw any background - keep it transparent
+        // The effect should overlay on existing layers
+        // Remove this method call if you want complete transparency
+    }
+
+    // Implementation using Canvas2d API with proper paths
+    async #drawBackgroundGridToCanvas(canvas, currentFrame, numberOfFrames) {
         const {grid, backgroundGridColor} = this.data;
-        
-        ctx.strokeStyle = backgroundGridColor + '20'; // 20% opacity
-        ctx.lineWidth = 0.5;
-        
-        // Draw vertical lines
-        for (let col = 0; col <= this.data.gridColumns; col++) {
+
+        // Draw vertical lines with animated opacity
+        for (let col = 0; col <= grid.gridColumns; col++) {
             const x = col * grid.cellWidth;
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, this.data.height);
-            ctx.stroke();
+
+            // Simple sine wave for smooth pulsing
+            const phaseOffset = (col / grid.gridColumns) * Math.PI * 2;
+            const progress = (currentFrame / numberOfFrames) * Math.PI * 2;
+            const opacity = 0.15 + Math.sin(progress + phaseOffset) * 0.1; // 0.05 to 0.25
+
+            const gridColor = this.#applyOpacityToColor(backgroundGridColor, opacity);
+
+            await canvas.drawLine2d(
+                {x: x, y: 0},
+                {x: x, y: this.data.height},
+                0.5, gridColor, 0, null, 1
+            );
         }
-        
-        // Draw horizontal lines
-        for (let row = 0; row <= this.data.gridRows; row++) {
+
+        // Draw horizontal lines with animated opacity
+        for (let row = 0; row <= grid.gridRows; row++) {
             const y = row * grid.cellHeight;
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(this.data.width, y);
-            ctx.stroke();
+
+            // Simple sine wave for smooth pulsing
+            const phaseOffset = (row / grid.gridRows) * Math.PI * 2;
+            const progress = (currentFrame / numberOfFrames) * Math.PI * 2;
+            const opacity = 0.15 + Math.sin(progress + phaseOffset) * 0.1; // 0.05 to 0.25
+
+            const gridColor = this.#applyOpacityToColor(backgroundGridColor, opacity);
+
+            await canvas.drawLine2d(
+                {x: 0, y: y},
+                {x: this.data.width, y: y},
+                0.5, gridColor, 0, null, 1
+            );
         }
     }
 
-    #drawTraces(ctx, currentFrame, numberOfFrames) {
+    async #drawTracesToCanvas(canvas, currentFrame, numberOfFrames) {
         const {traces, traceColor, activeTraceColor, traceWidth} = this.data;
-        
-        traces.forEach(trace => {
-            // Calculate pulse animation for active traces
+
+        for (const trace of traces) {
+            // Calculate pulse animation for active traces using simple sine wave
             let pulseIntensity = 0;
-            if (trace.isActive && this.data.perfectLoop) {
-                pulseIntensity = this.#findValueWithAlgorithm(
-                    0, 1,
-                    numberOfFrames, numberOfFrames,
-                    currentFrame + trace.pulseOffset,
-                    this.data.pulseAlgorithm
+            if (trace.isActive) {
+                const progress = ((currentFrame + trace.pulseOffset) / numberOfFrames) * trace.pulseSpeed * Math.PI * 2;
+                pulseIntensity = (Math.sin(progress) + 1) / 2; // 0 to 1
+            }
+
+            const color = trace.isActive ?
+                this.#blendColors(traceColor, activeTraceColor, pulseIntensity) :
+                traceColor;
+
+            // Use drawPath with the entire trace path array (like QuantumField does)
+            await canvas.drawPath(
+                trace.path,
+                traceWidth * 2, // innerStroke - make thicker for visibility
+                color || '#00FF00', // innerColor - green fallback
+                trace.isActive ? this.data.glowSpread : 0, // outerStroke for glow
+                trace.isActive ? activeTraceColor : null // outerColor for glow
+            );
+        }
+    }
+
+    async #drawSignalWavesToCanvas(canvas, currentFrame, numberOfFrames) {
+        const {signalWaves, signalColor, width, height} = this.data;
+        const maxRadius = Math.max(width, height);
+
+        for (const wave of signalWaves) {
+            // Simple linear expansion with looping
+            const progress = ((currentFrame + wave.phaseOffset * 10) % numberOfFrames) / numberOfFrames;
+            const waveProgress = progress * maxRadius * wave.speed;
+
+            // Calculate opacity based on decay
+            const opacity = Math.max(0, 1 - (waveProgress / maxRadius) * wave.decayRate);
+
+            if (opacity > 0.01) {
+                // Draw expanding circle wave using path
+                const circlePath = this.#createCirclePath(wave.originX, wave.originY, waveProgress);
+                await canvas.drawPath(
+                    circlePath,
+                    Math.max(1, 2 - waveProgress / maxRadius * 2), // innerStroke
+                    signalColor, // innerColor
+                    0, // outerStroke
+                    null // outerColor
                 );
             }
-            
-            // Draw trace path
-            ctx.beginPath();
-            ctx.strokeStyle = trace.isActive ? 
-                this.#blendColors(traceColor, activeTraceColor, pulseIntensity) : 
-                traceColor + Math.floor(trace.opacity * 255).toString(16).padStart(2, '0');
-            ctx.lineWidth = traceWidth;
-            ctx.lineCap = 'square';
-            ctx.lineJoin = 'miter';
-            
-            trace.path.forEach((point, index) => {
-                if (index === 0) {
-                    ctx.moveTo(point.x, point.y);
-                } else {
-                    ctx.lineTo(point.x, point.y);
-                }
-            });
-            
-            ctx.stroke();
-            
-            // Add glow effect for active traces
-            if (trace.isActive && this.data.glowIntensity > 0) {
-                ctx.save();
-                ctx.shadowBlur = this.data.glowSpread + pulseIntensity * 10;
-                ctx.shadowColor = activeTraceColor;
-                ctx.stroke();
-                ctx.restore();
-            }
-        });
+        }
     }
 
-    #drawNodes(ctx, currentFrame, numberOfFrames) {
+    async #drawNodesToCanvas(canvas, currentFrame, numberOfFrames) {
         const {nodes, nodeColor, nodeCoreColor} = this.data;
-        
-        nodes.forEach(node => {
-            // Calculate pulse/charge animation
-            const chargeLevel = this.data.perfectLoop ? 
-                this.#findValueWithAlgorithm(
-                    0, 1,
-                    node.chargeTime + node.dischargeTime,
-                    numberOfFrames,
-                    currentFrame + node.pulseOffset,
-                    this.data.pulseAlgorithm
-                ) : 0.5;
-            
+
+        for (const node of nodes) {
+            // Simple sine wave for charge/discharge cycle
+            const cycleDuration = node.chargeTime + node.dischargeTime;
+            const progress = ((currentFrame + node.pulseOffset) / cycleDuration) * Math.PI * 2;
+            const chargeLevel = (Math.sin(progress) + 1) / 2; // 0 to 1
+
             // Draw node based on type
-            this.#drawNodeByType(ctx, node, chargeLevel);
-            
-            // Add glow effect
-            if (this.data.glowIntensity > 0) {
-                ctx.save();
-                ctx.shadowBlur = this.data.glowSpread * (0.5 + chargeLevel * 0.5);
-                ctx.shadowColor = nodeCoreColor;
-                ctx.fillStyle = nodeCoreColor + Math.floor(chargeLevel * 255).toString(16).padStart(2, '0');
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, node.radius * 0.3, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        });
+            await this.#drawNodeByTypeToCanvas(canvas, node, chargeLevel);
+        }
     }
 
-    #drawNodeByType(ctx, node, chargeLevel) {
+    async #drawNodeByTypeToCanvas(canvas, node, chargeLevel) {
         const {nodeColor, nodeCoreColor} = this.data;
-        
+
+        // Ensure colors are valid
+        const validNodeColor = nodeColor || '#00FF00';
+        const validCoreColor = nodeCoreColor || '#FFFF00';
+
         switch (node.type) {
             case 'junction':
-                // Simple circle junction
-                ctx.fillStyle = nodeColor;
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Inner core
-                ctx.fillStyle = nodeCoreColor + Math.floor(chargeLevel * 255).toString(16).padStart(2, '0');
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, node.radius * 0.5, 0, Math.PI * 2);
-                ctx.fill();
+                // Draw filled circle for better visibility
+                const junctionPath = this.#createCirclePath(node.x, node.y, node.radius);
+                await canvas.drawPath(junctionPath, 2, validNodeColor, 0, null);
+
+                // Inner core with charge level
+                const corePath = this.#createCirclePath(node.x, node.y, node.radius * 0.5);
+                await canvas.drawPath(corePath, 1, validCoreColor,
+                    this.data.glowIntensity * chargeLevel, validCoreColor);
                 break;
-                
-            case 'and':
-                // AND gate shape
-                this.#drawAndGate(ctx, node.x, node.y, node.radius, nodeColor, chargeLevel);
-                break;
-                
-            case 'or':
-                // OR gate shape
-                this.#drawOrGate(ctx, node.x, node.y, node.radius, nodeColor, chargeLevel);
-                break;
-                
-            case 'capacitor':
-                // Capacitor symbol
-                this.#drawCapacitor(ctx, node.x, node.y, node.radius, nodeColor, chargeLevel);
-                break;
-                
+
             case 'processor':
-                // CPU-like square with grid
-                this.#drawProcessor(ctx, node.x, node.y, node.radius, nodeColor, chargeLevel);
+                // CPU-like square using path
+                const squarePath = this.#createSquarePath(node.x, node.y, node.radius);
+                await canvas.drawPath(squarePath, 2, validNodeColor, 0, null);
                 break;
-                
+
             default:
-                // Default junction
-                ctx.fillStyle = nodeColor;
-                ctx.beginPath();
-                ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-                ctx.fill();
+                // Default junction - filled circle
+                const defaultPath = this.#createCirclePath(node.x, node.y, node.radius);
+                await canvas.drawPath(defaultPath, 2, validNodeColor, 0, null);
         }
     }
 
-    #drawAndGate(ctx, x, y, size, color, chargeLevel) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.fillStyle = color;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        
-        // Draw AND gate shape (D-shape)
-        ctx.beginPath();
-        ctx.moveTo(-size, -size);
-        ctx.lineTo(0, -size);
-        ctx.arc(0, 0, size, -Math.PI/2, Math.PI/2);
-        ctx.lineTo(-size, size);
-        ctx.lineTo(-size, -size);
-        ctx.stroke();
-        
-        // Fill with charge level
-        ctx.fillStyle = color + Math.floor(chargeLevel * 100).toString(16).padStart(2, '0');
-        ctx.fill();
-        
-        ctx.restore();
-    }
-
-    #drawOrGate(ctx, x, y, size, color, chargeLevel) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.fillStyle = color;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        
-        // Draw OR gate shape (shield-like)
-        ctx.beginPath();
-        ctx.moveTo(-size, -size);
-        ctx.quadraticCurveTo(0, -size * 0.5, size, 0);
-        ctx.quadraticCurveTo(0, size * 0.5, -size, size);
-        ctx.quadraticCurveTo(-size * 0.5, 0, -size, -size);
-        ctx.stroke();
-        
-        // Fill with charge level
-        ctx.fillStyle = color + Math.floor(chargeLevel * 100).toString(16).padStart(2, '0');
-        ctx.fill();
-        
-        ctx.restore();
-    }
-
-    #drawCapacitor(ctx, x, y, size, color, chargeLevel) {
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        
-        // Draw capacitor symbol (two parallel lines)
-        const gap = size * 0.4;
-        ctx.beginPath();
-        ctx.moveTo(x - gap, y - size);
-        ctx.lineTo(x - gap, y + size);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(x + gap, y - size);
-        ctx.lineTo(x + gap, y + size);
-        ctx.stroke();
-        
-        // Show charge between plates
-        if (chargeLevel > 0.1) {
-            ctx.strokeStyle = this.data.signalColor + Math.floor(chargeLevel * 255).toString(16).padStart(2, '0');
-            ctx.lineWidth = 1;
-            for (let i = 0; i < 3; i++) {
-                ctx.beginPath();
-                ctx.moveTo(x - gap + 2, y - size/2 + i * size/2);
-                ctx.lineTo(x + gap - 2, y - size/2 + i * size/2);
-                ctx.stroke();
-            }
-        }
-        
-        ctx.restore();
-    }
-
-    #drawProcessor(ctx, x, y, size, color, chargeLevel) {
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.fillStyle = color + '40';
-        ctx.lineWidth = 2;
-        
-        // Draw processor square
-        const halfSize = size;
-        ctx.fillRect(x - halfSize, y - halfSize, halfSize * 2, halfSize * 2);
-        ctx.strokeRect(x - halfSize, y - halfSize, halfSize * 2, halfSize * 2);
-        
-        // Draw internal grid
-        ctx.strokeStyle = color + Math.floor(chargeLevel * 255).toString(16).padStart(2, '0');
-        ctx.lineWidth = 1;
-        const gridSize = 3;
-        const cellSize = (halfSize * 2) / gridSize;
-        
-        for (let i = 1; i < gridSize; i++) {
-            // Vertical lines
-            ctx.beginPath();
-            ctx.moveTo(x - halfSize + i * cellSize, y - halfSize);
-            ctx.lineTo(x - halfSize + i * cellSize, y + halfSize);
-            ctx.stroke();
-            
-            // Horizontal lines
-            ctx.beginPath();
-            ctx.moveTo(x - halfSize, y - halfSize + i * cellSize);
-            ctx.lineTo(x + halfSize, y - halfSize + i * cellSize);
-            ctx.stroke();
-        }
-        
-        ctx.restore();
-    }
-
-    #drawDataPackets(ctx, currentFrame, numberOfFrames) {
+    async #drawDataPacketsToCanvas(canvas, currentFrame, numberOfFrames) {
         const {packets, traces, dataPacketColor} = this.data;
-        
-        packets.forEach(packet => {
+
+        for (const packet of packets) {
             // Find the trace this packet belongs to
             const trace = traces.find(t => t.id === packet.traceId);
-            if (!trace || trace.path.length < 2) return;
-            
-            // Calculate packet position along trace path
-            const progress = this.data.perfectLoop ?
-                this.#findValueWithAlgorithm(
-                    0, 1,
-                    numberOfFrames / packet.speed,
-                    numberOfFrames,
-                    currentFrame + packet.startOffset,
-                    this.data.flowAlgorithm
-                ) : 0.5;
-            
+            if (!trace || trace.path.length < 2) continue;
+
+            // Simple linear progress along path
+            const cycleFrames = numberOfFrames / packet.speed;
+            const progress = ((currentFrame + packet.startOffset) % cycleFrames) / cycleFrames;
+
             // Get position on trace path
             const position = this.#getPositionOnPath(trace.path, progress, packet.direction);
-            
-            // Draw packet
-            ctx.save();
-            
-            // Add glow
-            if (this.data.glowIntensity > 0) {
-                ctx.shadowBlur = packet.glowRadius;
-                ctx.shadowColor = dataPacketColor;
-            }
-            
-            // Draw packet as glowing dot
-            ctx.fillStyle = dataPacketColor;
-            ctx.beginPath();
-            ctx.arc(position.x, position.y, packet.size, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Draw data bit if enabled
-            if (this.data.showDataBits) {
-                ctx.fillStyle = '#FFFFFF';
-                ctx.font = `bold ${packet.size * 2}px monospace`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(packet.dataBit, position.x, position.y);
-            }
-            
-            ctx.restore();
-        });
+
+            // Draw packet as glowing dot using path
+            const packetPath = this.#createCirclePath(position.x, position.y, packet.size);
+            await canvas.drawPath(
+                packetPath,
+                packet.size, // innerStroke - filled appearance
+                dataPacketColor || '#00FFFF', // innerColor - cyan fallback
+                packet.glowRadius, // outerStroke for glow
+                dataPacketColor || '#00FFFF' // outerColor for glow
+            );
+        }
     }
 
-    #drawSignalWaves(ctx, currentFrame, numberOfFrames) {
-        const {signalWaves, signalColor, width, height} = this.data;
-        
-        signalWaves.forEach(wave => {
-            // Calculate wave expansion
-            const waveProgress = this.data.perfectLoop ?
-                this.#findValueWithAlgorithm(
-                    0, Math.max(width, height),
-                    numberOfFrames / wave.speed,
-                    numberOfFrames,
-                    currentFrame + wave.phaseOffset * 10,
-                    this.data.waveAlgorithm
-                ) : 100;
-            
-            // Calculate opacity based on decay
-            const opacity = Math.max(0, 1 - (waveProgress / Math.max(width, height)) * wave.decayRate);
-            
-            if (opacity > 0.01) {
-                ctx.save();
-                ctx.strokeStyle = signalColor + Math.floor(opacity * 100).toString(16).padStart(2, '0');
-                ctx.lineWidth = 2 - waveProgress / Math.max(width, height);
-                ctx.setLineDash([5, 10]);
-                
-                // Draw expanding circle wave
-                ctx.beginPath();
-                ctx.arc(wave.originX, wave.originY, waveProgress, 0, Math.PI * 2);
-                ctx.stroke();
-                
-                ctx.restore();
-            }
-        });
+    // Keep utility methods only
+
+    #getColorFromPicker(colorPicker, settings) {
+        if (!colorPicker) return '#00FF00'; // Default fallback
+
+        // Check if it's a ColorPicker instance with getColor method
+        if (typeof colorPicker.getColor === 'function') {
+            const color = colorPicker.getColor(settings);
+            return color || '#00FF00';
+        }
+
+        // If it's already a string color
+        if (typeof colorPicker === 'string') {
+            return colorPicker;
+        }
+
+        return '#00FF00'; // Default fallback
+    }
+
+    #createCirclePath(centerX, centerY, radius) {
+        const path = [];
+        const steps = 32; // Smooth circle
+        for (let i = 0; i <= steps; i++) {
+            const angle = (i / steps) * Math.PI * 2;
+            path.push({
+                x: centerX + Math.cos(angle) * radius,
+                y: centerY + Math.sin(angle) * radius
+            });
+        }
+        return path;
+    }
+
+    #createSquarePath(centerX, centerY, size) {
+        return [
+            {x: centerX - size, y: centerY - size},
+            {x: centerX + size, y: centerY - size},
+            {x: centerX + size, y: centerY + size},
+            {x: centerX - size, y: centerY + size},
+            {x: centerX - size, y: centerY - size}, // Close the path
+        ];
     }
 
     #getPositionOnPath(path, progress, direction) {
         if (path.length < 2) {
             return path[0] || {x: 0, y: 0};
         }
-        
+
         // Adjust progress based on direction
+        // Don't double-ease - findValue already handles easing
         const adjustedProgress = direction > 0 ? progress : 1 - progress;
-        
+
         // Calculate total path length
         let totalLength = 0;
         const segments = [];
-        
+
         for (let i = 0; i < path.length - 1; i++) {
             const dx = path[i + 1].x - path[i].x;
             const dy = path[i + 1].y - path[i].y;
@@ -706,10 +580,10 @@ export class CircuitStreamEffect extends LayerEffect {
             });
             totalLength += length;
         }
-        
-        // Find position along path
+
+        // Find position along path - linear interpolation since easing is in findValue
         const targetLength = adjustedProgress * totalLength;
-        
+
         for (const segment of segments) {
             if (targetLength <= segment.accumulated + segment.length) {
                 const segmentProgress = (targetLength - segment.accumulated) / segment.length;
@@ -719,7 +593,7 @@ export class CircuitStreamEffect extends LayerEffect {
                 };
             }
         }
-        
+
         // Return last point if beyond path
         return path[path.length - 1];
     }
@@ -729,18 +603,25 @@ export class CircuitStreamEffect extends LayerEffect {
         const r1 = parseInt(color1.slice(1, 3), 16);
         const g1 = parseInt(color1.slice(3, 5), 16);
         const b1 = parseInt(color1.slice(5, 7), 16);
-        
+
         const r2 = parseInt(color2.slice(1, 3), 16);
         const g2 = parseInt(color2.slice(3, 5), 16);
         const b2 = parseInt(color2.slice(5, 7), 16);
-        
+
         // Blend colors
         const r = Math.round(r1 + (r2 - r1) * ratio);
         const g = Math.round(g1 + (g2 - g1) * ratio);
         const b = Math.round(b1 + (b2 - b1) * ratio);
-        
+
         // Return hex color
         return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
+    #applyOpacityToColor(hexColor, opacity) {
+        // Convert opacity (0-1) to hex (00-FF)
+        const opacityHex = Math.round(opacity * 255).toString(16).padStart(2, '0');
+        // Append opacity to hex color (supports #RRGGBB format)
+        return hexColor + opacityHex;
     }
 }
 
