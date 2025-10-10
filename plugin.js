@@ -27,6 +27,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { MetatronCubeEffect } = await import('./src/effects/primaryEffects/MetatronCube/MetatronCubeEffect.js');
         const { MetatronCubeConfig } = await import('./src/effects/primaryEffects/MetatronCube/MetatronCubeConfig.js');
         
+        console.log('📦 [Plugin] Importing CymaticsResonance effect...');
+        const { CymaticsResonanceEffect } = await import('./src/effects/primaryEffects/CymaticsResonance/CymaticsResonanceEffect.js');
+        const { CymaticsResonanceConfig } = await import('./src/effects/primaryEffects/CymaticsResonance/CymaticsResonanceConfig.js');
+        
         console.log('📦 [Plugin] Importing EffectCategories...');
         const { EffectCategories } = await import('my-nft-gen/src/core/registry/EffectCategories.js');
         
@@ -35,6 +39,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         FlowFieldEffect._configClass_ = FlowFieldConfig;
         CircuitStreamEffect._configClass_ = CircuitStreamConfig;
         MetatronCubeEffect._configClass_ = MetatronCubeConfig;
+        CymaticsResonanceEffect._configClass_ = CymaticsResonanceConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -81,6 +86,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: MetatronCubeEffect._tags_ || ['effect', 'primary', 'sacred-geometry', 'metatron', 'mystical', 'animated']
             });
             console.log(`✅ Registered: ${MetatronCubeEffect._name_} as PRIMARY effect`);
+        }
+
+        // Register CymaticsResonance effect as PRIMARY
+        console.log(`📦 Effect name: ${CymaticsResonanceEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(CymaticsResonanceEffect._name_)) {
+            console.log(`ℹ️ Effect '${CymaticsResonanceEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(CymaticsResonanceEffect, EffectCategories.PRIMARY, {
+                displayName: CymaticsResonanceEffect._displayName_ || 'Cymatics Resonance',
+                description: CymaticsResonanceEffect._description_ || 'Mesmerizing standing wave patterns inspired by cymatics - visible sound vibrations creating harmonic interference patterns',
+                version: CymaticsResonanceEffect._version_ || '1.0.0',
+                author: CymaticsResonanceEffect._author_ || 'Zencoder',
+                tags: CymaticsResonanceEffect._tags_ || ['effect', 'primary', 'cymatics', 'waves', 'harmonic', 'resonance', 'animated']
+            });
+            console.log(`✅ Registered: ${CymaticsResonanceEffect._name_} as PRIMARY effect`);
         }
 
         // Register FlowField effect as SECONDARY
