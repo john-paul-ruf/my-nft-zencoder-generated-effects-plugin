@@ -37,6 +37,21 @@ export async function register(EffectRegistry, PositionRegistry) {
         
         console.log('📦 [Plugin] Importing EffectCategories...');
         const { EffectCategories } = await import('my-nft-gen/src/core/registry/EffectCategories.js');
+
+        // Import OrbitBloom FINAL effect
+        console.log('📦 [Plugin] Importing OrbitBloom final effect...');
+        const { OrbitBloomEffect } = await import('./src/effects/finalImageEffects/OrbitBloom/OrbitBloomEffect.js');
+        const { OrbitBloomConfig } = await import('./src/effects/finalImageEffects/OrbitBloom/OrbitBloomConfig.js');
+        
+        // Import VoidEcho FINAL effect
+        console.log('📦 [Plugin] Importing VoidEcho final effect...');
+        const { VoidEchoEffect } = await import('./src/effects/finalImageEffects/VoidEcho/VoidEchoEffect.js');
+        const { VoidEchoConfig } = await import('./src/effects/finalImageEffects/VoidEcho/VoidEchoConfig.js');
+        
+        // Import FluxWeave FINAL effect
+        console.log('📦 [Plugin] Importing FluxWeave final effect...');
+        const { FluxWeaveEffect } = await import('./src/effects/finalImageEffects/FluxWeave/FluxWeaveEffect.js');
+        const { FluxWeaveConfig } = await import('./src/effects/finalImageEffects/FluxWeave/FluxWeaveConfig.js');
         
         // Set the config class reference
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
@@ -45,6 +60,9 @@ export async function register(EffectRegistry, PositionRegistry) {
         MetatronCubeEffect._configClass_ = MetatronCubeConfig;
         CymaticsResonanceEffect._configClass_ = CymaticsResonanceConfig;
         AuroraKaleidoEffect._configClass_ = AuroraKaleidoConfig;
+        OrbitBloomEffect._configClass_ = OrbitBloomConfig;
+        VoidEchoEffect._configClass_ = VoidEchoConfig;
+        FluxWeaveEffect._configClass_ = FluxWeaveConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -138,11 +156,58 @@ export async function register(EffectRegistry, PositionRegistry) {
             console.log(`✅ Registered: ${FlowFieldEffect._name_} as SECONDARY effect`);
         }
 
+        // Register OrbitBloom effect as FINAL
+        console.log(`📦 Effect name: ${OrbitBloomEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(OrbitBloomEffect._name_)) {
+            console.log(`ℹ️ Effect '${OrbitBloomEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(OrbitBloomEffect, EffectCategories.FINAL, {
+                displayName: OrbitBloomEffect._displayName_ || 'Orbit Bloom',
+                description: OrbitBloomEffect._description_ || 'Iridescent chromatic orbit, ripple displacement, bloom, vignette with perfect loop.',
+                version: OrbitBloomEffect._version_ || '1.0.0',
+                author: OrbitBloomEffect._author_ || 'Zencoder',
+                tags: OrbitBloomEffect._tags_ || ['effect', 'final', 'post', 'bloom', 'chromatic', 'animated']
+            });
+            console.log(`✅ Registered: ${OrbitBloomEffect._name_} as FINAL effect`);
+        }
+
+        // Register VoidEcho effect as FINAL
+        console.log(`📦 Effect name: ${VoidEchoEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(VoidEchoEffect._name_)) {
+            console.log(`ℹ️ Effect '${VoidEchoEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(VoidEchoEffect, EffectCategories.FINAL, {
+                displayName: VoidEchoEffect._displayName_ || 'Void Echo',
+                description: VoidEchoEffect._description_ || 'Recursive reality distortion with chromatic echoes through dimensional layers. Perfect loop.',
+                version: VoidEchoEffect._version_ || '1.0.0',
+                author: VoidEchoEffect._author_ || 'Zencoder',
+                tags: VoidEchoEffect._tags_ || ['effect', 'final', 'post', 'recursive', 'chromatic', 'psychedelic', 'animated']
+            });
+            console.log(`✅ Registered: ${VoidEchoEffect._name_} as FINAL effect`);
+        }
+
+        // Register FluxWeave effect as FINAL
+        console.log(`📦 Effect name: ${FluxWeaveEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(FluxWeaveEffect._name_)) {
+            console.log(`ℹ️ Effect '${FluxWeaveEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(FluxWeaveEffect, EffectCategories.FINAL, {
+                displayName: FluxWeaveEffect._displayName_ || 'Flux Weave',
+                description: FluxWeaveEffect._description_ || 'Temporal fabric manipulation with flowing energy threads. Perfect loop.',
+                version: FluxWeaveEffect._version_ || '1.0.0',
+                author: FluxWeaveEffect._author_ || 'Zencoder',
+                tags: FluxWeaveEffect._tags_ || ['effect', 'final', 'post', 'wave', 'flow', 'fabric', 'animated']
+            });
+            console.log(`✅ Registered: ${FluxWeaveEffect._name_} as FINAL effect`);
+        }
+
         // Verify registration in the global registry
         const primaryEffects = EffectRegistry.getByCategoryGlobal(EffectCategories.PRIMARY);
         const secondaryEffects = EffectRegistry.getByCategoryGlobal(EffectCategories.SECONDARY);
+        const finalEffects = EffectRegistry.getByCategoryGlobal(EffectCategories.FINAL);
         console.log(`📊 PRIMARY effects after registration:`, Object.keys(primaryEffects));
         console.log(`📊 SECONDARY effects after registration:`, Object.keys(secondaryEffects));
+        console.log(`📊 FINAL effects after registration:`, Object.keys(finalEffects));
 
         return true;
     } catch (error) {
