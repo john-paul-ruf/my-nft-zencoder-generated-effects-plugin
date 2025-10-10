@@ -31,6 +31,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { CymaticsResonanceEffect } = await import('./src/effects/primaryEffects/CymaticsResonance/CymaticsResonanceEffect.js');
         const { CymaticsResonanceConfig } = await import('./src/effects/primaryEffects/CymaticsResonance/CymaticsResonanceConfig.js');
         
+        console.log('📦 [Plugin] Importing AuroraKaleido effect...');
+        const { AuroraKaleidoEffect } = await import('./src/effects/primaryEffects/AuroraKaleido/AuroraKaleidoEffect.js');
+        const { AuroraKaleidoConfig } = await import('./src/effects/primaryEffects/AuroraKaleido/AuroraKaleidoConfig.js');
+        
         console.log('📦 [Plugin] Importing EffectCategories...');
         const { EffectCategories } = await import('my-nft-gen/src/core/registry/EffectCategories.js');
         
@@ -40,6 +44,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         CircuitStreamEffect._configClass_ = CircuitStreamConfig;
         MetatronCubeEffect._configClass_ = MetatronCubeConfig;
         CymaticsResonanceEffect._configClass_ = CymaticsResonanceConfig;
+        AuroraKaleidoEffect._configClass_ = AuroraKaleidoConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -101,6 +106,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: CymaticsResonanceEffect._tags_ || ['effect', 'primary', 'cymatics', 'waves', 'harmonic', 'resonance', 'animated']
             });
             console.log(`✅ Registered: ${CymaticsResonanceEffect._name_} as PRIMARY effect`);
+        }
+
+        // Register AuroraKaleido effect as PRIMARY
+        console.log(`📦 Effect name: ${AuroraKaleidoEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(AuroraKaleidoEffect._name_)) {
+            console.log(`ℹ️ Effect '${AuroraKaleidoEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(AuroraKaleidoEffect, EffectCategories.PRIMARY, {
+                displayName: AuroraKaleidoEffect._displayName_ || 'Aurora Kaleidoscope Flow',
+                description: AuroraKaleidoEffect._description_ || 'Flowing aurora ribbons reflected through a kaleidoscope with perfect loop.',
+                version: AuroraKaleidoEffect._version_ || '1.0.0',
+                author: AuroraKaleidoEffect._author_ || 'Zencoder',
+                tags: AuroraKaleidoEffect._tags_ || ['effect', 'primary', 'aurora', 'kaleido', 'ribbons', 'animated']
+            });
+            console.log(`✅ Registered: ${AuroraKaleidoEffect._name_} as PRIMARY effect`);
         }
 
         // Register FlowField effect as SECONDARY

@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "demo": "node index.js"
+    "demo": "node index.js",
+    "test:primary": "node test-runner-primary.js --list",
+    "test:primary:run": "node test-runner-primary.js --effect quantum-field --width 1024 --height 1024 --frames 120 --out ./docs/primary-effects/quantum-field.png"
   },
   "devDependencies": {
     "my-nft-gen": "file:../my-nft-gen"

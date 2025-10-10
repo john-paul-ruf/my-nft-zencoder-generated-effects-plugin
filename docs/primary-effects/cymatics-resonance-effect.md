@@ -80,9 +80,9 @@ Cymatics is the study of visible sound and vibration. When a surface vibrates at
 ## Usage Example
 
 ```javascript
-import { CymaticsResonanceEffect } from './src/effects/primaryEffects/CymaticsResonance/CymaticsResonanceEffect.js';
-import { CymaticsResonanceConfig } from './src/effects/primaryEffects/CymaticsResonance/CymaticsResonanceConfig.js';
-import { ColorPicker } from 'my-nft-gen/src/core/layer/configType/ColorPicker.js';
+import {CymaticsResonanceEffect} from './src/effects/primaryEffects/CymaticsResonance/CymaticsResonanceEffect.js';
+import {CymaticsResonanceConfig} from './src/effects/primaryEffects/CymaticsResonance/CymaticsResonanceConfig.js';
+import {ColorPicker} from '../my-nft-gen/src/core/layer/configType/ColorPicker.js';
 
 // Create configuration
 const config = new CymaticsResonanceConfig({
