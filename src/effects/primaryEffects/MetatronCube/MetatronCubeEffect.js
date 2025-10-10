@@ -13,7 +13,7 @@ export class MetatronCubeEffect extends LayerEffect {
     static _displayName_ = 'Metatron Cube';
     static _description_ = 'Sacred geometry effect featuring Metatron\'s Cube with inscribed runes, Platonic solids, and overwhelming mystical detail';
     static _version_ = '1.0.0';
-    static _author_ = 'Digital Alchemist';
+    static _author_ = 'Zencoder';
     static _tags_ = ['effect', 'primary', 'sacred-geometry', 'metatron', 'mystical', 'animated'];
 
     constructor({
@@ -847,14 +847,19 @@ export class MetatronCubeEffect extends LayerEffect {
             // Calculate pulse position along line
             const pulseProgress = ((progress * pulse.speed + pulse.phaseOffset / (Math.PI * 2)) % 1);
             
-            // Get base position on the line
-            const baseX = line.start.x + (line.end.x - line.start.x) * pulseProgress;
-            const baseY = line.start.y + (line.end.y - line.start.y) * pulseProgress;
+            // Apply rotation to line endpoints FIRST
+            const startPos = rotationAngle !== 0 
+                ? rotatePoint(line.start.x, line.start.y, rotationAngle)
+                : {x: line.start.x, y: line.start.y};
+            const endPos = rotationAngle !== 0 
+                ? rotatePoint(line.end.x, line.end.y, rotationAngle)
+                : {x: line.end.x, y: line.end.y};
             
-            // Apply rotation to pulse position
-            const pulsePos = rotationAngle !== 0 
-                ? rotatePoint(baseX, baseY, rotationAngle)
-                : {x: baseX, y: baseY};
+            // Calculate pulse position along the ROTATED line
+            const pulsePos = {
+                x: startPos.x + (endPos.x - startPos.x) * pulseProgress,
+                y: startPos.y + (endPos.y - startPos.y) * pulseProgress
+            };
             
             // Add pulsing size effect
             const sizeProgress = (animProgress * 2 + pulse.phaseOffset) % (Math.PI * 2);
@@ -879,16 +884,42 @@ export class MetatronCubeEffect extends LayerEffect {
      */
     async #drawParticles(canvas, currentFrame, numberOfFrames) {
         const progress = (currentFrame / numberOfFrames);
+        const animProgress = progress * Math.PI * 2;
         const {lines} = this.data.metatronCube;
+        
+        // Calculate rotation angle if enabled (same as cube rotation)
+        const rotationAngle = this.data.cubeRotationEnabled 
+            ? animProgress * this.data.cubeRotationSpeed 
+            : 0;
+        
+        // Helper function to rotate a point around center
+        const rotatePoint = (x, y, angle) => {
+            const dx = x - this.data.centerX;
+            const dy = y - this.data.centerY;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            return {
+                x: this.data.centerX + (dx * cos - dy * sin),
+                y: this.data.centerY + (dx * sin + dy * cos)
+            };
+        };
         
         for (const particle of this.data.particles) {
             const line = lines[particle.lineIndex];
             if (!line) continue;
             
-            // Update particle position
+            // Apply rotation to line endpoints FIRST
+            const startPos = rotationAngle !== 0 
+                ? rotatePoint(line.start.x, line.start.y, rotationAngle)
+                : {x: line.start.x, y: line.start.y};
+            const endPos = rotationAngle !== 0 
+                ? rotatePoint(line.end.x, line.end.y, rotationAngle)
+                : {x: line.end.x, y: line.end.y};
+            
+            // Update particle position along the ROTATED line
             const particleProgress = ((progress * particle.speed + particle.phaseOffset / (Math.PI * 2)) % 1);
-            const x = line.start.x + (line.end.x - line.start.x) * particleProgress;
-            const y = line.start.y + (line.end.y - line.start.y) * particleProgress;
+            const x = startPos.x + (endPos.x - startPos.x) * particleProgress;
+            const y = startPos.y + (endPos.y - startPos.y) * particleProgress;
             
             // Draw particle trail
             if (this.data.particleTrailLength > 0) {
@@ -897,8 +928,9 @@ export class MetatronCubeEffect extends LayerEffect {
                     const trailProgress = particleProgress - (i * trailStep);
                     if (trailProgress < 0) continue; // Don't wrap around
                     
-                    const trailX = line.start.x + (line.end.x - line.start.x) * trailProgress;
-                    const trailY = line.start.y + (line.end.y - line.start.y) * trailProgress;
+                    // Calculate trail position along the ROTATED line
+                    const trailX = startPos.x + (endPos.x - startPos.x) * trailProgress;
+                    const trailY = startPos.y + (endPos.y - startPos.y) * trailProgress;
                     
                     // Fade trail based on distance from particle
                     const trailOpacity = 0.6 * (1 - i / this.data.particleTrailLength);

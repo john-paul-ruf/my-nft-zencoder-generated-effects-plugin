@@ -77,7 +77,7 @@ export async function register(EffectRegistry, PositionRegistry) {
                 displayName: MetatronCubeEffect._displayName_ || 'Metatron Cube',
                 description: MetatronCubeEffect._description_ || 'Sacred geometry effect featuring Metatron\'s Cube with inscribed runes, Platonic solids, and overwhelming mystical detail',
                 version: MetatronCubeEffect._version_ || '1.0.0',
-                author: MetatronCubeEffect._author_ || 'Digital Alchemist',
+                author: MetatronCubeEffect._author_ || 'Zencoder',
                 tags: MetatronCubeEffect._tags_ || ['effect', 'primary', 'sacred-geometry', 'metatron', 'mystical', 'animated']
             });
             console.log(`✅ Registered: ${MetatronCubeEffect._name_} as PRIMARY effect`);
