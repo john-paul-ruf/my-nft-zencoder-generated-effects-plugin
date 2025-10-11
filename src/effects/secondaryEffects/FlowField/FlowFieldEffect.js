@@ -72,8 +72,9 @@ export class FlowFieldEffect extends LayerEffect {
         // Copy original pixels to processed buffer
         processedPixels.set(originalPixels);
 
+        // Calculate time for perfect loop animation (default: true)
         const progress = frameNumber / totalFrames;
-        this.time = this.config.perfectLoop
+        this.time = (this.config.perfectLoop !== false)
             ? progress * Math.PI * 2
             : frameNumber * 0.01;
 

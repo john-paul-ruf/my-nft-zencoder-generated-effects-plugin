@@ -108,8 +108,8 @@ export class VoidEchoEffect extends LayerEffect {
 
     // Generate each echo layer
     for (let echoIndex = 0; echoIndex < this.data.echoCount; echoIndex++) {
-      // Calculate echo phase with temporal offset
-      const echoPhase = (t - (echoIndex * this.data.echoSpacing)) % 1.0;
+      // Calculate echo phase with temporal offset (ensure positive modulo for perfect loop)
+      const echoPhase = ((t - (echoIndex * this.data.echoSpacing)) % 1.0 + 1.0) % 1.0;
       
       // Calculate echo opacity with decay and pulse
       const baseOpacity = Math.pow(this.data.echoDecay, echoIndex);
