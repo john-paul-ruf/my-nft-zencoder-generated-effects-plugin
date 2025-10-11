@@ -20,18 +20,23 @@ export class OrbitBloomEffect extends LayerEffect {
 
   // Precompute deterministic data; no RNG in invoke
   #generate(settings) {
+    // Normalize config: support flat config with toRuntime() mapping
+    const cfg = (this.config && typeof this.config.toRuntime === 'function')
+      ? this.config.toRuntime()
+      : this.config || {};
+
     this.data = {
       // Store dimensions if provided; we fallback to layer dimensions in invoke
       width: settings?.width,
       height: settings?.height,
       // Copy config scalars used every frame to avoid shape changes
-      orbit: this.config.orbit,
-      ripple: this.config.ripple,
-      bloom: this.config.bloom,
-      vignette: this.config.vignette,
-      grain: this.config.grain,
-      layerOpacity: this.config.layerOpacity,
-      perfectLoop: this.config.perfectLoop === true
+      orbit: cfg.orbit,
+      ripple: cfg.ripple,
+      bloom: cfg.bloom,
+      vignette: cfg.vignette,
+      grain: cfg.grain,
+      layerOpacity: cfg.layerOpacity ?? this.config?.layerOpacity ?? 1.0,
+      perfectLoop: (cfg.perfectLoop ?? this.config?.perfectLoop) === true
     };
   }
 
@@ -251,7 +256,7 @@ export class OrbitBloomEffect extends LayerEffect {
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const idx = (y * width + x) * 4;
-        const n = hash(x, y, phase) & 0xFF; // 0..255
+        const n = (hash(x, y, phase) & 0xFF); // 0..255
         const delta = (n / 255 - 0.5) * 2 * amount * 255;
         pixels[idx] = Math.max(0, Math.min(255, pixels[idx] + delta));
         pixels[idx + 1] = Math.max(0, Math.min(255, pixels[idx + 1] + delta));

@@ -27,6 +27,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { HolographicPrismEffect } = await import('./src/effects/secondaryEffects/HolographicPrism/index.js');
         const { HolographicPrismConfig } = await import('./src/effects/secondaryEffects/HolographicPrism/index.js');
         
+        console.log('📦 [Plugin] Importing ChronoLenticularFoil effect...');
+        const { ChronoLenticularFoilEffect } = await import('./src/effects/secondaryEffects/ChronoLenticularFoil/index.js');
+        const { ChronoLenticularFoilConfig } = await import('./src/effects/secondaryEffects/ChronoLenticularFoil/index.js');
+        
         console.log('📦 [Plugin] Importing ChromaticAberration secondary effect...');
         const { ChromaticAberrationEffect: ChromaticAberrationSecondaryEffect } = await import('./src/effects/secondaryEffects/ChromaticAberration/index.js');
         const { ChromaticAberrationConfig: ChromaticAberrationSecondaryConfig } = await import('./src/effects/secondaryEffects/ChromaticAberration/index.js');
@@ -80,6 +84,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         FlowFieldEffect._configClass_ = FlowFieldConfig;
         LiquidChromaticEffect._configClass_ = LiquidChromaticConfig;
         HolographicPrismEffect._configClass_ = HolographicPrismConfig;
+        ChronoLenticularFoilEffect._configClass_ = ChronoLenticularFoilConfig;
         ChromaticAberrationSecondaryEffect._configClass_ = ChromaticAberrationSecondaryConfig;
         CircuitStreamEffect._configClass_ = CircuitStreamConfig;
         MetatronCubeEffect._configClass_ = MetatronCubeConfig;
@@ -211,6 +216,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: HolographicPrismEffect._tags_ || ['effect', 'secondary', 'holographic', 'prism', 'chromatic', 'iridescent']
             });
             console.log(`✅ Registered: ${HolographicPrismEffect._name_} as SECONDARY effect`);
+        }
+
+        // Register ChronoLenticularFoil effect as SECONDARY
+        console.log(`📦 Effect name: ${ChronoLenticularFoilEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(ChronoLenticularFoilEffect._name_)) {
+            console.log(`ℹ️ Effect '${ChronoLenticularFoilEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(ChronoLenticularFoilEffect, EffectCategories.SECONDARY, {
+                displayName: ChronoLenticularFoilEffect._displayName_ || 'Chrono Lenticular Foil',
+                description: ChronoLenticularFoilEffect._description_ || 'Iridescent micro-groove interference shimmer with spectral dispersion and perfect loop.',
+                version: ChronoLenticularFoilEffect._version_ || '1.0.0',
+                author: ChronoLenticularFoilEffect._author_ || 'Zencoder',
+                tags: ChronoLenticularFoilEffect._tags_ || ['effect','secondary','foil','holographic','iridescent','interference','animated']
+            });
+            console.log(`✅ Registered: ${ChronoLenticularFoilEffect._name_} as SECONDARY effect`);
         }
 
         // Register ChromaticAberration effect as SECONDARY
