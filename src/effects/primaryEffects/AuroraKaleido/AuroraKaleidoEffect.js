@@ -58,8 +58,6 @@ export class AuroraKaleidoEffect extends LayerEffect {
             lineWidth: +this.config.lineWidth,
 
             // Resolve colors from ColorPicker using repo pattern
-            bgStartColor: this.#getColorFromPicker(this.config.bgStartColor, settings),
-            bgEndColor: this.#getColorFromPicker(this.config.bgEndColor, settings),
             colorA: this.#getColorFromPicker(this.config.colorA, settings),
             colorB: this.#getColorFromPicker(this.config.colorB, settings),
             colorC: this.#getColorFromPicker(this.config.colorC, settings),
@@ -75,7 +73,6 @@ export class AuroraKaleidoEffect extends LayerEffect {
 
     async invoke(layer, currentFrame, numberOfFrames) {
         const canvas = await Canvas2dFactory.getNewCanvas(this.data.width, this.data.height);
-        await this.#drawBackground(canvas);
         await this.#renderAurora(canvas, currentFrame, numberOfFrames);
 
         // Follow CymaticsResonance pattern due to convertToLayer bug
@@ -99,13 +96,7 @@ export class AuroraKaleidoEffect extends LayerEffect {
         return layer;
     }
 
-    async #drawBackground(canvas) {
-        const { width, height, bgStartColor, bgEndColor } = this.data;
-        await canvas.drawGradientRect(0, 0, width, height, [
-            { offset: 0, color: bgStartColor },
-            { offset: 1, color: bgEndColor },
-        ]);
-    }
+
 
     async #renderAurora(canvas, currentFrame, numberOfFrames) {
         const d = this.data;

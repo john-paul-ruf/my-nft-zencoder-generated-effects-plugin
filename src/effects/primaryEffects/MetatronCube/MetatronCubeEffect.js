@@ -60,8 +60,6 @@ export class MetatronCubeEffect extends LayerEffect {
             runeColor: this.#getColorFromPicker(this.config.runeColor, settings),
             particleColor: this.#getColorFromPicker(this.config.particleColor, settings),
             glowColor: this.#getColorFromPicker(this.config.glowColor, settings),
-            backgroundGradientStart: this.#getColorFromPicker(this.config.backgroundGradientStart, settings),
-            backgroundGradientEnd: this.#getColorFromPicker(this.config.backgroundGradientEnd, settings),
             
             // Visual effects
             glowIntensity: randomNumber(this.config.glowIntensityMin, this.config.glowIntensityMax),
@@ -570,9 +568,6 @@ export class MetatronCubeEffect extends LayerEffect {
         const progress = (currentFrame / numberOfFrames) * Math.PI * 2;
         const masterRotation = progress * this.data.masterRotationSpeed;
         
-        // Draw background gradient
-        await this.#drawBackground(canvas, this.data.width, this.data.height);
-        
         // Draw Flower of Life (if enabled)
         if (this.data.flowerOfLife) {
             await this.#drawFlowerOfLife(canvas, currentFrame, numberOfFrames);
@@ -616,13 +611,7 @@ export class MetatronCubeEffect extends LayerEffect {
         await layer.compositeLayerOver(resultLayer);
     }
 
-    /**
-     * Draw background (transparent - effect overlays on existing layers)
-     */
-    async #drawBackground(canvas, width, height) {
-        // Keep background transparent - the effect should overlay on existing layers
-        // Canvas2d doesn't support gradients, so we skip background drawing
-    }
+
 
     /**
      * Draw Flower of Life

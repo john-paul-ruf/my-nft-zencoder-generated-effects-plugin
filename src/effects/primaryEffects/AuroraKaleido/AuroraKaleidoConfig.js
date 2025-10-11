@@ -25,8 +25,6 @@ export class AuroraKaleidoConfig extends EffectConfig {
         this.lineWidth = cfg.lineWidth ?? 1.5;
 
         // Colors are configured via ColorPicker to match repo patterns
-        this.bgStartColor = this.#ensureColorPicker(cfg.bgStartColor ?? new ColorPicker(ColorPicker.SelectionType.color, '#030711'));
-        this.bgEndColor = this.#ensureColorPicker(cfg.bgEndColor ?? new ColorPicker(ColorPicker.SelectionType.color, '#0b1b36'));
         this.colorA = this.#ensureColorPicker(cfg.colorA ?? new ColorPicker(ColorPicker.SelectionType.color, '#33d1ff'));
         this.colorB = this.#ensureColorPicker(cfg.colorB ?? new ColorPicker(ColorPicker.SelectionType.color, '#9b5bff'));
         this.colorC = this.#ensureColorPicker(cfg.colorC ?? new ColorPicker(ColorPicker.SelectionType.color, '#ff5ea0'));

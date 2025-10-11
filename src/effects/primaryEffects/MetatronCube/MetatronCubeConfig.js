@@ -86,8 +86,6 @@ export class MetatronCubeConfig extends EffectConfig {
                     runeColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
                     particleColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
                     glowColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
-                    backgroundGradientStart = new ColorPicker(ColorPicker.SelectionType.color, '#000033'),
-                    backgroundGradientEnd = new ColorPicker(ColorPicker.SelectionType.color, '#000000'),
                     
                     // Animation
                     perfectLoop = true,
@@ -187,8 +185,6 @@ export class MetatronCubeConfig extends EffectConfig {
         this.runeColor = this.#ensureColorPicker(runeColor);
         this.particleColor = this.#ensureColorPicker(particleColor);
         this.glowColor = this.#ensureColorPicker(glowColor);
-        this.backgroundGradientStart = this.#ensureColorPicker(backgroundGradientStart);
-        this.backgroundGradientEnd = this.#ensureColorPicker(backgroundGradientEnd);
         
         // Animation
         this.perfectLoop = perfectLoop;

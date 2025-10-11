@@ -75,8 +75,6 @@ export class CymaticsResonanceEffect extends LayerEffect {
             nodeCoreColor: this.#getColorFromPicker(this.config.nodeCoreColor, settings),
             rippleColor: this.#getColorFromPicker(this.config.rippleColor, settings),
             gridColor: this.#getColorFromPicker(this.config.gridColor, settings),
-            backgroundGradientStart: this.#getColorFromPicker(this.config.backgroundGradientStart, settings),
-            backgroundGradientEnd: this.#getColorFromPicker(this.config.backgroundGradientEnd, settings),
             
             // Pre-generated random values for consistent animation
             glowIntensity: randomNumber(this.config.glowIntensityMin, this.config.glowIntensityMax),
@@ -187,9 +185,6 @@ export class CymaticsResonanceEffect extends LayerEffect {
         // Calculate loop phase for perfect looping
         const loopPhase = this.#calculateLoopPhase(currentFrame, numberOfFrames);
 
-        // Draw background gradient
-        await this.#drawBackground(canvas);
-
         // Draw frequency grid if enabled
         if (this.data.showFrequencyGrid) {
             await this.#drawFrequencyGrid(canvas, loopPhase);
@@ -285,20 +280,7 @@ export class CymaticsResonanceEffect extends LayerEffect {
         return amplitude;
     }
 
-    async #drawBackground(canvas) {
-        // Draw a gradient background to establish canvas dimensions
-        // SVG canvas needs at least one visible element to establish bounds
-        const {width, height} = this.data;
-        
-        // Use drawGradientRect to create a proper background with gradient
-        await canvas.drawGradientRect(
-            0, 0, width, height,
-            [
-                { offset: 0, color: this.data.backgroundGradientStart },
-                { offset: 1, color: this.data.backgroundGradientEnd }
-            ]
-        );
-    }
+
 
     async #drawFrequencyGrid(canvas, loopPhase) {
         const {width, height} = this.data;

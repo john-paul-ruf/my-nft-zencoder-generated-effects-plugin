@@ -53,8 +53,6 @@ export class CymaticsResonanceConfig extends EffectConfig {
                     nodeCoreColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
                     rippleColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
                     gridColor = new ColorPicker(ColorPicker.SelectionType.color, '#1a1a3a'),
-                    backgroundGradientStart = new ColorPicker(ColorPicker.SelectionType.color, '#000033'),
-                    backgroundGradientEnd = new ColorPicker(ColorPicker.SelectionType.color, '#000000'),
 
                     // Animation
                     perfectLoop = true,
@@ -113,8 +111,6 @@ export class CymaticsResonanceConfig extends EffectConfig {
         this.nodeCoreColor = this.#ensureColorPicker(nodeCoreColor);
         this.rippleColor = this.#ensureColorPicker(rippleColor);
         this.gridColor = this.#ensureColorPicker(gridColor);
-        this.backgroundGradientStart = this.#ensureColorPicker(backgroundGradientStart);
-        this.backgroundGradientEnd = this.#ensureColorPicker(backgroundGradientEnd);
 
         // Animation
         this.perfectLoop = perfectLoop;

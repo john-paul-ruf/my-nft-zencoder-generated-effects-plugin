@@ -19,6 +19,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { FlowFieldEffect } = await import('./src/effects/secondaryEffects/FlowField/index.js');
         const { FlowFieldConfig } = await import('./src/effects/secondaryEffects/FlowField/index.js');
         
+        console.log('📦 [Plugin] Importing LiquidChromatic effect...');
+        const { LiquidChromaticEffect } = await import('./src/effects/secondaryEffects/LiquidChromatic/LiquidChromaticEffect.js');
+        const { LiquidChromaticConfig } = await import('./src/effects/secondaryEffects/LiquidChromatic/LiquidChromaticConfig.js');
+        
         console.log('📦 [Plugin] Importing CircuitStream effect...');
         const { CircuitStreamEffect } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamEffect.js');
         const { CircuitStreamConfig } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamConfig.js');
@@ -58,9 +62,15 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { ChromaticAberrationEffect } = await import('./src/effects/finalImageEffects/ChromaticAberration/ChromaticAberrationEffect.js');
         const { ChromaticAberrationConfig } = await import('./src/effects/finalImageEffects/ChromaticAberration/ChromaticAberrationConfig.js');
         
+        // Import PrismaticShatter FINAL effect
+        console.log('📦 [Plugin] Importing PrismaticShatter final effect...');
+        const { PrismaticShatterEffect } = await import('./src/effects/finalImageEffects/PrismaticShatter/PrismaticShatterEffect.js');
+        const { PrismaticShatterConfig } = await import('./src/effects/finalImageEffects/PrismaticShatter/PrismaticShatterConfig.js');
+        
         // Set the config class reference
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
+        LiquidChromaticEffect._configClass_ = LiquidChromaticConfig;
         CircuitStreamEffect._configClass_ = CircuitStreamConfig;
         MetatronCubeEffect._configClass_ = MetatronCubeConfig;
         CymaticsResonanceEffect._configClass_ = CymaticsResonanceConfig;
@@ -69,6 +79,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         VoidEchoEffect._configClass_ = VoidEchoConfig;
         FluxWeaveEffect._configClass_ = FluxWeaveConfig;
         ChromaticAberrationEffect._configClass_ = ChromaticAberrationConfig;
+        PrismaticShatterEffect._configClass_ = PrismaticShatterConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -162,12 +173,27 @@ export async function register(EffectRegistry, PositionRegistry) {
             console.log(`✅ Registered: ${FlowFieldEffect._name_} as SECONDARY effect`);
         }
 
+        // Register LiquidChromatic effect as SECONDARY
+        console.log(`📦 Effect name: ${LiquidChromaticEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(LiquidChromaticEffect._name_)) {
+            console.log(`ℹ️ Effect '${LiquidChromaticEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(LiquidChromaticEffect, EffectCategories.SECONDARY, {
+                displayName: LiquidChromaticEffect._displayName_ || 'Liquid Chromatic',
+                description: LiquidChromaticEffect._description_ || 'Flowing liquid with chromatic trails and iridescent shimmer. Perfect loop.',
+                version: LiquidChromaticEffect._version_ || '1.0.0',
+                author: LiquidChromaticEffect._author_ || 'Zencoder',
+                tags: LiquidChromaticEffect._tags_ || ['effect', 'secondary', 'liquid', 'chromatic', 'iridescent', 'flow', 'animated']
+            });
+            console.log(`✅ Registered: ${LiquidChromaticEffect._name_} as SECONDARY effect`);
+        }
+
         // Register OrbitBloom effect as FINAL
         console.log(`📦 Effect name: ${OrbitBloomEffect._name_}`);
         if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(OrbitBloomEffect._name_)) {
             console.log(`ℹ️ Effect '${OrbitBloomEffect._name_}' is already registered, skipping...`);
         } else {
-            EffectRegistry.registerGlobal(OrbitBloomEffect, EffectCategories.FINAL, {
+            EffectRegistry.registerGlobal(OrbitBloomEffect, EffectCategories.FINAL_IMAGE, {
                 displayName: OrbitBloomEffect._displayName_ || 'Orbit Bloom',
                 description: OrbitBloomEffect._description_ || 'Iridescent chromatic orbit, ripple displacement, bloom, vignette with perfect loop.',
                 version: OrbitBloomEffect._version_ || '1.0.0',
@@ -182,7 +208,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(VoidEchoEffect._name_)) {
             console.log(`ℹ️ Effect '${VoidEchoEffect._name_}' is already registered, skipping...`);
         } else {
-            EffectRegistry.registerGlobal(VoidEchoEffect, EffectCategories.FINAL, {
+            EffectRegistry.registerGlobal(VoidEchoEffect, EffectCategories.FINAL_IMAGE, {
                 displayName: VoidEchoEffect._displayName_ || 'Void Echo',
                 description: VoidEchoEffect._description_ || 'Recursive reality distortion with chromatic echoes through dimensional layers. Perfect loop.',
                 version: VoidEchoEffect._version_ || '1.0.0',
@@ -197,7 +223,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(FluxWeaveEffect._name_)) {
             console.log(`ℹ️ Effect '${FluxWeaveEffect._name_}' is already registered, skipping...`);
         } else {
-            EffectRegistry.registerGlobal(FluxWeaveEffect, EffectCategories.FINAL, {
+            EffectRegistry.registerGlobal(FluxWeaveEffect, EffectCategories.FINAL_IMAGE, {
                 displayName: FluxWeaveEffect._displayName_ || 'Flux Weave',
                 description: FluxWeaveEffect._description_ || 'Temporal fabric manipulation with flowing energy threads. Perfect loop.',
                 version: FluxWeaveEffect._version_ || '1.0.0',
@@ -212,7 +238,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(ChromaticAberrationEffect._name_)) {
             console.log(`ℹ️ Effect '${ChromaticAberrationEffect._name_}' is already registered, skipping...`);
         } else {
-            EffectRegistry.registerGlobal(ChromaticAberrationEffect, EffectCategories.FINAL, {
+            EffectRegistry.registerGlobal(ChromaticAberrationEffect, EffectCategories.FINAL_IMAGE, {
                 displayName: ChromaticAberrationEffect._displayName_ || 'Chromatic Aberration',
                 description: ChromaticAberrationEffect._description_ || 'RGB channel separation with dynamic displacement. The operator in the noise. Perfect loop.',
                 version: ChromaticAberrationEffect._version_ || '1.0.0',
@@ -222,10 +248,25 @@ export async function register(EffectRegistry, PositionRegistry) {
             console.log(`✅ Registered: ${ChromaticAberrationEffect._name_} as FINAL effect`);
         }
 
+        // Register PrismaticShatter effect as FINAL
+        console.log(`📦 Effect name: ${PrismaticShatterEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(PrismaticShatterEffect._name_)) {
+            console.log(`ℹ️ Effect '${PrismaticShatterEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(PrismaticShatterEffect, EffectCategories.FINAL_IMAGE, {
+                displayName: PrismaticShatterEffect._displayName_ || 'Prismatic Shatter',
+                description: PrismaticShatterEffect._description_ || 'Fractures image into crystal shards with prismatic light refraction. Perfect loop.',
+                version: PrismaticShatterEffect._version_ || '1.0.0',
+                author: PrismaticShatterEffect._author_ || 'Zencoder',
+                tags: PrismaticShatterEffect._tags_ || ['effect', 'final', 'post', 'prismatic', 'crystal', 'refraction', 'animated', 'dramatic']
+            });
+            console.log(`✅ Registered: ${PrismaticShatterEffect._name_} as FINAL effect`);
+        }
+
         // Verify registration in the global registry
         const primaryEffects = EffectRegistry.getByCategoryGlobal(EffectCategories.PRIMARY);
         const secondaryEffects = EffectRegistry.getByCategoryGlobal(EffectCategories.SECONDARY);
-        const finalEffects = EffectRegistry.getByCategoryGlobal(EffectCategories.FINAL);
+        const finalEffects = EffectRegistry.getByCategoryGlobal(EffectCategories.FINAL_IMAGE);
         console.log(`📊 PRIMARY effects after registration:`, Object.keys(primaryEffects));
         console.log(`📊 SECONDARY effects after registration:`, Object.keys(secondaryEffects));
         console.log(`📊 FINAL effects after registration:`, Object.keys(finalEffects));

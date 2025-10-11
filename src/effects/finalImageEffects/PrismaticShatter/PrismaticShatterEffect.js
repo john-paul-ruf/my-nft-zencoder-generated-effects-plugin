@@ -1,4 +1,6 @@
 import { LayerEffect } from 'my-nft-gen/src/core/layer/LayerEffect.js';
+import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
+import { createCanvas, loadImage } from 'canvas';
 
 /**
  * PrismaticShatter Effect - Crystalline Light Refraction
@@ -177,7 +179,7 @@ export class PrismaticShatterEffect extends LayerEffect {
     const { width, height } = this.data;
     
     // Create working canvas
-    const canvas = this.createCanvas(width, height);
+    const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
     // Enable antialiasing if configured
@@ -188,6 +190,13 @@ export class PrismaticShatterEffect extends LayerEffect {
     const progress = totalFrames > 1 ? frameNumber / totalFrames : 0;
     const animAngle = progress * Math.PI * 2; // Full cycle for perfect loop
     
+    // Load input layer image
+    let inputImage = null;
+    if (layer) {
+      const inputBuffer = await layer.toBuffer();
+      inputImage = await loadImage(inputBuffer);
+    }
+    
     // Clear canvas with ambient glow
     this.#renderAmbientGlow(ctx, width, height);
     
@@ -197,13 +206,13 @@ export class PrismaticShatterEffect extends LayerEffect {
     }
     
     // Draw original image first (will be shattered)
-    if (layer?.canvas) {
+    if (inputImage) {
       ctx.globalAlpha = 1.0 - this.config.effectIntensity * 0.5;
-      ctx.drawImage(layer.canvas, 0, 0, width, height);
+      ctx.drawImage(inputImage, 0, 0, width, height);
     }
     
     // Calculate shard positions and render
-    this.#renderShards(ctx, layer, animAngle);
+    this.#renderShards(ctx, inputImage, animAngle);
     
     // Render volumetric light rays
     if (this.config.lightIntensity > 0) {
@@ -228,8 +237,11 @@ export class PrismaticShatterEffect extends LayerEffect {
       ctx.fillRect(0, 0, width, height);
     }
     
-    // Return as layer
-    return this.canvasToLayer(canvas);
+    // Convert canvas to buffer and update layer
+    const buffer = canvas.toBuffer('image/png');
+    await layer.fromBuffer(buffer);
+    
+    return layer;
   }
 
   /**
@@ -285,21 +297,21 @@ export class PrismaticShatterEffect extends LayerEffect {
   /**
    * Render crystal shards with refraction
    */
-  #renderShards(ctx, layer, animAngle) {
+  #renderShards(ctx, inputImage, animAngle) {
     const { shards, centerX, centerY } = this.data;
     
     // Sort shards by depth (far to near)
     const sortedShards = [...shards].sort((a, b) => a.depth - b.depth);
     
     sortedShards.forEach(shard => {
-      this.#renderSingleShard(ctx, layer, shard, animAngle);
+      this.#renderSingleShard(ctx, inputImage, shard, animAngle);
     });
   }
 
   /**
    * Render individual shard with all effects
    */
-  #renderSingleShard(ctx, layer, shard, animAngle) {
+  #renderSingleShard(ctx, inputImage, shard, animAngle) {
     const { width, height, centerX, centerY } = this.data;
     
     // Calculate animated position
@@ -346,8 +358,8 @@ export class PrismaticShatterEffect extends LayerEffect {
     ctx.clip();
     
     // Draw refracted image with chromatic aberration
-    if (layer?.canvas) {
-      this.#drawRefractedImage(ctx, layer, shard, shardX, shardY);
+    if (inputImage) {
+      this.#drawRefractedImage(ctx, inputImage, shard, shardX, shardY);
     }
     
     // Add prismatic edge effects
@@ -359,7 +371,7 @@ export class PrismaticShatterEffect extends LayerEffect {
   /**
    * Draw image through shard with refraction
    */
-  #drawRefractedImage(ctx, layer, shard, shardX, shardY) {
+  #drawRefractedImage(ctx, inputImage, shard, shardX, shardY) {
     const dispersion = this.config.chromaticDispersion * this.config.spectralWidth;
     
     // Draw RGB channels separately for chromatic aberration
@@ -368,7 +380,7 @@ export class PrismaticShatterEffect extends LayerEffect {
     // Red channel
     ctx.globalAlpha = 0.8;
     ctx.drawImage(
-      layer.canvas,
+      inputImage,
       shardX - shard.size * 30 - dispersion,
       shardY - shard.size * 30,
       shard.size * 60,
@@ -381,7 +393,7 @@ export class PrismaticShatterEffect extends LayerEffect {
     
     // Green channel
     ctx.drawImage(
-      layer.canvas,
+      inputImage,
       shardX - shard.size * 30,
       shardY - shard.size * 30,
       shard.size * 60,
@@ -394,7 +406,7 @@ export class PrismaticShatterEffect extends LayerEffect {
     
     // Blue channel
     ctx.drawImage(
-      layer.canvas,
+      inputImage,
       shardX - shard.size * 30 + dispersion,
       shardY - shard.size * 30,
       shard.size * 60,
