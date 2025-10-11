@@ -20,7 +20,7 @@ import { globalBufferPool } from 'my-nft-gen/src/core/pool/BufferPool.js';
  * - Perfect loop - all animations return to origin
  */
 export class ChromaticAberrationEffect extends LayerEffect {
-  static _name_ = 'chromatic-aberration';
+  static _name_ = 'chromatic-aberration-final-image-effect';
   static _displayName_ = 'Chromatic Aberration';
   static _description_ = 'RGB channel separation with dynamic displacement. The operator in the noise. Perfect loop.';
   static _version_ = '1.0.0';
