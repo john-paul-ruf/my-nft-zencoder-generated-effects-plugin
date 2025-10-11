@@ -335,9 +335,9 @@ The **Liquid Chromatic Effect** is a production-ready, highly configurable, math
 ## 📞 Support
 
 For questions or issues:
-1. Check [README.md](docs/secondary-effects/LiquidChromatic/README.md)
-2. Review [QUICK_START.md](docs/secondary-effects/LiquidChromatic/QUICK_START.md)
-3. Read [ARCHITECTURE.md](docs/secondary-effects/LiquidChromatic/ARCHITECTURE.md)
+1. Check [README.md](README.md)
+2. Review [QUICK_START.md](QUICK_START.md)
+3. Read [ARCHITECTURE.md](ARCHITECTURE.md)
 4. Run tests to verify installation
 
 ---

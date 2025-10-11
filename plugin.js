@@ -27,6 +27,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { HolographicPrismEffect } = await import('./src/effects/secondaryEffects/HolographicPrism/index.js');
         const { HolographicPrismConfig } = await import('./src/effects/secondaryEffects/HolographicPrism/index.js');
         
+        console.log('📦 [Plugin] Importing ChromaticAberration secondary effect...');
+        const { ChromaticAberrationEffect: ChromaticAberrationSecondaryEffect } = await import('./src/effects/secondaryEffects/ChromaticAberration/index.js');
+        const { ChromaticAberrationConfig: ChromaticAberrationSecondaryConfig } = await import('./src/effects/secondaryEffects/ChromaticAberration/index.js');
+        
         console.log('📦 [Plugin] Importing CircuitStream effect...');
         const { CircuitStreamEffect } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamEffect.js');
         const { CircuitStreamConfig } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamConfig.js');
@@ -76,6 +80,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         FlowFieldEffect._configClass_ = FlowFieldConfig;
         LiquidChromaticEffect._configClass_ = LiquidChromaticConfig;
         HolographicPrismEffect._configClass_ = HolographicPrismConfig;
+        ChromaticAberrationSecondaryEffect._configClass_ = ChromaticAberrationSecondaryConfig;
         CircuitStreamEffect._configClass_ = CircuitStreamConfig;
         MetatronCubeEffect._configClass_ = MetatronCubeConfig;
         CymaticsResonanceEffect._configClass_ = CymaticsResonanceConfig;
@@ -206,6 +211,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: HolographicPrismEffect._tags_ || ['effect', 'secondary', 'holographic', 'prism', 'chromatic', 'iridescent']
             });
             console.log(`✅ Registered: ${HolographicPrismEffect._name_} as SECONDARY effect`);
+        }
+
+        // Register ChromaticAberration effect as SECONDARY
+        console.log(`📦 Effect name: ${ChromaticAberrationSecondaryEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(ChromaticAberrationSecondaryEffect._name_)) {
+            console.log(`ℹ️ Effect '${ChromaticAberrationSecondaryEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(ChromaticAberrationSecondaryEffect, EffectCategories.SECONDARY, {
+                displayName: ChromaticAberrationSecondaryEffect._displayName_ || 'Chromatic Aberration',
+                description: ChromaticAberrationSecondaryEffect._description_ || 'Optical lens distortion effect that separates RGB channels for dreamy, glitchy, retro-futuristic aesthetics',
+                version: ChromaticAberrationSecondaryEffect._version_ || '1.0.0',
+                author: ChromaticAberrationSecondaryEffect._author_ || 'Zencoder',
+                tags: ChromaticAberrationSecondaryEffect._tags_ || ['effect', 'secondary', 'chromatic', 'aberration', 'glitch', 'retro', 'rgb', 'animated']
+            });
+            console.log(`✅ Registered: ${ChromaticAberrationSecondaryEffect._name_} as SECONDARY effect`);
         }
 
         // Register OrbitBloom effect as FINAL
