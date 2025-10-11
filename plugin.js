@@ -79,6 +79,11 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { PrismaticShatterEffect } = await import('./src/effects/finalImageEffects/PrismaticShatter/PrismaticShatterEffect.js');
         const { PrismaticShatterConfig } = await import('./src/effects/finalImageEffects/PrismaticShatter/PrismaticShatterConfig.js');
         
+        // Import HoloFoil FINAL effect
+        console.log('📦 [Plugin] Importing HoloFoil final effect...');
+        const { HoloFoilEffect } = await import('./src/effects/finalImageEffects/HoloFoil/HoloFoilEffect.js');
+        const { HoloFoilConfig } = await import('./src/effects/finalImageEffects/HoloFoil/HoloFoilConfig.js');
+        
         // Set the config class reference
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
@@ -95,6 +100,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         FluxWeaveEffect._configClass_ = FluxWeaveConfig;
         ChromaticAberrationEffect._configClass_ = ChromaticAberrationConfig;
         PrismaticShatterEffect._configClass_ = PrismaticShatterConfig;
+        HoloFoilEffect._configClass_ = HoloFoilConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -321,6 +327,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: PrismaticShatterEffect._tags_ || ['effect', 'final', 'post', 'prismatic', 'crystal', 'refraction', 'animated', 'dramatic']
             });
             console.log(`✅ Registered: ${PrismaticShatterEffect._name_} as FINAL effect`);
+        }
+
+        // Register HoloFoil effect as FINAL
+        console.log(`📦 Effect name: ${HoloFoilEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(HoloFoilEffect._name_)) {
+            console.log(`ℹ️ Effect '${HoloFoilEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(HoloFoilEffect, EffectCategories.FINAL_IMAGE, {
+                displayName: HoloFoilEffect._displayName_ || 'Holo Foil',
+                description: HoloFoilEffect._description_ || 'Iridescent holographic foil with prismatic diffraction and shimmer. Perfect loop.',
+                version: HoloFoilEffect._version_ || '1.0.0',
+                author: HoloFoilEffect._author_ || 'Zencoder',
+                tags: HoloFoilEffect._tags_ || ['effect', 'final', 'post', 'holographic', 'foil', 'prismatic', 'animated']
+            });
+            console.log(`✅ Registered: ${HoloFoilEffect._name_} as FINAL effect`);
         }
 
         // Verify registration in the global registry
