@@ -617,6 +617,7 @@ export class MetatronCubeEffect extends LayerEffect {
      */
     async invoke(layer, currentFrame, numberOfFrames) {
         await this.#drawMetatronCubeEffect(layer, currentFrame, numberOfFrames);
+        await super.invoke(layer, currentFrame, numberOfFrames);
         return layer;
     }
 

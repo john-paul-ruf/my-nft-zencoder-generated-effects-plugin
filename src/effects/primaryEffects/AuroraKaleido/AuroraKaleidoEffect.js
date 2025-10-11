@@ -93,6 +93,7 @@ export class AuroraKaleidoEffect extends LayerEffect {
 
         await resultLayer.adjustLayerOpacity(this.data.layerOpacity);
         await layer.compositeLayerOver(resultLayer);
+        await super.invoke(layer, currentFrame, numberOfFrames);
         return layer;
     }
 

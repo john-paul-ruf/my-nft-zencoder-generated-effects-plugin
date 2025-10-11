@@ -140,6 +140,7 @@ export class CymaticsResonanceEffect extends LayerEffect {
     async invoke(layer, currentFrame, numberOfFrames) {
         // Draw cymatics resonance directly to layer
         await this.#drawCymaticsResonance(layer, currentFrame, numberOfFrames);
+        await super.invoke(layer, currentFrame, numberOfFrames);
         return layer;
     }
 

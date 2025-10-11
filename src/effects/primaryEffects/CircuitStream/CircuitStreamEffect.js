@@ -289,6 +289,7 @@ export class CircuitStreamEffect extends LayerEffect {
     async invoke(layer, currentFrame, numberOfFrames) {
         // ✅ SOLID: DIP - Draw circuit stream directly to layer
         await this.#drawCircuitStream(layer, currentFrame, numberOfFrames);
+        await super.invoke(layer, currentFrame, numberOfFrames);
         return layer;
     }
 
