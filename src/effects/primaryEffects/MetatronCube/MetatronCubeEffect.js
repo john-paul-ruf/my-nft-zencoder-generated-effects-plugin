@@ -75,19 +75,65 @@ export class MetatronCubeEffect extends LayerEffect {
             energyPulses: this.#generateEnergyPulses(),
             centralMandala: this.config.showCentralMandala ? this.#generateCentralMandala(centerX, centerY, baseRadius) : null,
             
-            // Animation settings
+            // Animation settings (quantized for perfect loop if enabled)
             cubeRotationEnabled: this.config.cubeRotationEnabled,
-            cubeRotationSpeed: this.config.cubeRotationSpeed,
-            masterRotationSpeed: this.config.masterRotationSpeed,
+            cubeRotationSpeed: this.#quantizeSpeed(this.config.cubeRotationSpeed),
+            masterRotationSpeed: this.#quantizeSpeed(this.config.masterRotationSpeed),
             lineWidth: this.config.lineWidth,
-            linePulseSpeed: this.config.linePulseSpeed,
+            linePulseSpeed: this.#quantizeSpeed(this.config.linePulseSpeed),
             linePulseIntensity: this.config.linePulseIntensity,
-            flowerBreathingSpeed: this.config.flowerBreathingSpeed,
+            flowerBreathingSpeed: this.#quantizeSpeed(this.config.flowerBreathingSpeed),
             flowerBreathingAmount: this.config.flowerBreathingAmount,
             solidWireframeWidth: this.config.solidWireframeWidth,
             solidFaceOpacity: randomNumber(this.config.solidFaceOpacityMin, this.config.solidFaceOpacityMax),
             particleTrailLength: this.config.particleTrailLength,
+            outerRuneRotationSpeed: this.#quantizeSpeed(this.config.outerRuneRotationSpeed),
+            innerGlyphRotationSpeed: this.#quantizeSpeed(this.config.innerGlyphRotationSpeed),
+            mandalaRotationSpeed: this.#quantizeSpeed(this.config.mandalaRotationSpeed),
         };
+    }
+
+    /**
+     * Helper: Quantize speed to integer for perfect looping
+     * If perfectLoop is disabled, returns original value
+     */
+    #quantizeSpeed(speed) {
+        if (!this.config.perfectLoop) {
+            return speed;
+        }
+        // Round to nearest integer, minimum 1
+        return Math.max(1, Math.round(speed));
+    }
+
+    /**
+     * Helper: Generate deterministic phase offset for perfect looping
+     * If perfectLoop is enabled, uses index-based offset; otherwise random
+     */
+    #getPhaseOffset(index, total) {
+        if (this.config.perfectLoop) {
+            // Deterministic: evenly distribute phases across the cycle
+            return (index / total) * Math.PI * 2;
+        }
+        // Random for visual variety when perfect loop not needed
+        return Math.random() * Math.PI * 2;
+    }
+
+    /**
+     * Helper: Generate integer frequency for perfect looping
+     */
+    #getIntegerFrequency(min, max) {
+        const range = Math.floor(max - min) + 1;
+        return Math.floor(min + Math.random() * range);
+    }
+
+    /**
+     * Helper: Quantize speed within range for perfect looping
+     */
+    #getQuantizedSpeed(min, max) {
+        if (this.config.perfectLoop) {
+            return this.#getIntegerFrequency(min, max);
+        }
+        return randomNumber(min, max);
     }
 
     /**
@@ -95,12 +141,8 @@ export class MetatronCubeEffect extends LayerEffect {
      */
     #generateMetatronCube(centerX, centerY, baseRadius) {
         const spheres = [];
-        
-        // Helper to generate integer pulse frequency for perfect looping
-        const getIntegerFrequency = () => {
-            const range = Math.floor(this.config.vertexPulseFrequencyMax - this.config.vertexPulseFrequencyMin) + 1;
-            return Math.floor(this.config.vertexPulseFrequencyMin + Math.random() * range);
-        };
+        const totalSpheres = 13; // 1 center + 6 inner + 6 outer
+        let sphereIndex = 0;
         
         // Central sphere
         spheres.push({
@@ -108,8 +150,8 @@ export class MetatronCubeEffect extends LayerEffect {
             y: centerY,
             radius: randomNumber(this.config.sphereRadiusMin, this.config.sphereRadiusMax),
             glowRadius: randomNumber(this.config.vertexGlowRadiusMin, this.config.vertexGlowRadiusMax),
-            pulseFrequency: getIntegerFrequency(),
-            phaseOffset: Math.random() * Math.PI * 2,
+            pulseFrequency: this.#getIntegerFrequency(this.config.vertexPulseFrequencyMin, this.config.vertexPulseFrequencyMax),
+            phaseOffset: this.#getPhaseOffset(sphereIndex++, totalSpheres),
         });
         
         // 6 inner circle spheres (hexagon)
@@ -121,8 +163,8 @@ export class MetatronCubeEffect extends LayerEffect {
                 y: centerY + Math.sin(angle) * innerRadius,
                 radius: randomNumber(this.config.sphereRadiusMin, this.config.sphereRadiusMax),
                 glowRadius: randomNumber(this.config.vertexGlowRadiusMin, this.config.vertexGlowRadiusMax),
-                pulseFrequency: getIntegerFrequency(),
-                phaseOffset: Math.random() * Math.PI * 2,
+                pulseFrequency: this.#getIntegerFrequency(this.config.vertexPulseFrequencyMin, this.config.vertexPulseFrequencyMax),
+                phaseOffset: this.#getPhaseOffset(sphereIndex++, totalSpheres),
             });
         }
         
@@ -135,26 +177,23 @@ export class MetatronCubeEffect extends LayerEffect {
                 y: centerY + Math.sin(angle) * outerRadius,
                 radius: randomNumber(this.config.sphereRadiusMin, this.config.sphereRadiusMax),
                 glowRadius: randomNumber(this.config.vertexGlowRadiusMin, this.config.vertexGlowRadiusMax),
-                pulseFrequency: getIntegerFrequency(),
-                phaseOffset: Math.random() * Math.PI * 2,
+                pulseFrequency: this.#getIntegerFrequency(this.config.vertexPulseFrequencyMin, this.config.vertexPulseFrequencyMax),
+                phaseOffset: this.#getPhaseOffset(sphereIndex++, totalSpheres),
             });
         }
         
         // Generate all connecting lines (78 total)
         const lines = [];
-        // Helper to generate integer pulse speed for perfect looping
-        const getIntegerSpeed = () => {
-            const range = Math.floor(this.config.energyPulseSpeedMax - this.config.energyPulseSpeedMin) + 1;
-            return Math.floor(this.config.energyPulseSpeedMin + Math.random() * range);
-        };
+        let lineIndex = 0;
+        const totalLines = (spheres.length * (spheres.length - 1)) / 2; // 78 lines
         
         for (let i = 0; i < spheres.length; i++) {
             for (let j = i + 1; j < spheres.length; j++) {
                 lines.push({
                     start: spheres[i],
                     end: spheres[j],
-                    pulseSpeed: getIntegerSpeed(),
-                    phaseOffset: Math.random() * Math.PI * 2,
+                    pulseSpeed: this.#getIntegerFrequency(this.config.energyPulseSpeedMin, this.config.energyPulseSpeedMax),
+                    phaseOffset: this.#getPhaseOffset(lineIndex++, totalLines),
                 });
             }
         }
@@ -168,6 +207,8 @@ export class MetatronCubeEffect extends LayerEffect {
     #generateFlowerOfLife(centerX, centerY, baseRadius) {
         const circles = [];
         const radius = baseRadius * 0.3;
+        const totalCircles = 19; // 1 center + 6 first ring + 12 second ring
+        let circleIndex = 0;
         
         // Central circle
         circles.push({
@@ -175,7 +216,7 @@ export class MetatronCubeEffect extends LayerEffect {
             y: centerY,
             radius: radius,
             opacity: randomNumber(this.config.flowerOpacityMin, this.config.flowerOpacityMax),
-            phaseOffset: 0,
+            phaseOffset: this.#getPhaseOffset(circleIndex++, totalCircles),
         });
         
         // 6 surrounding circles (first ring)
@@ -186,7 +227,7 @@ export class MetatronCubeEffect extends LayerEffect {
                 y: centerY + Math.sin(angle) * radius,
                 radius: radius,
                 opacity: randomNumber(this.config.flowerOpacityMin, this.config.flowerOpacityMax),
-                phaseOffset: (i / 6) * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(circleIndex++, totalCircles),
             });
         }
         
@@ -199,7 +240,7 @@ export class MetatronCubeEffect extends LayerEffect {
                 y: centerY + Math.sin(angle) * distance,
                 radius: radius,
                 opacity: randomNumber(this.config.flowerOpacityMin, this.config.flowerOpacityMax),
-                phaseOffset: (i / 12) * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(circleIndex++, totalCircles),
             });
         }
         
@@ -212,6 +253,7 @@ export class MetatronCubeEffect extends LayerEffect {
     #generatePlatonicSolids(centerX, centerY, baseRadius) {
         const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio
         const scale = baseRadius * this.config.solidScale;
+        const totalSolids = 5;
         
         const solids = [
             {
@@ -222,11 +264,11 @@ export class MetatronCubeEffect extends LayerEffect {
                 edges: [[0,1], [0,2], [0,3], [1,2], [1,3], [2,3]],
                 faces: [[0,1,2], [0,1,3], [0,2,3], [1,2,3]],
                 rotationSpeed: {
-                    x: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    y: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    z: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    x: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    y: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    z: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
                 },
-                phaseOffset: Math.random() * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(0, totalSolids),
                 edgeGlow: randomNumber(this.config.solidEdgeGlowMin, this.config.solidEdgeGlowMax),
             },
             {
@@ -242,11 +284,11 @@ export class MetatronCubeEffect extends LayerEffect {
                 ],
                 faces: [[0,1,2,3], [4,5,6,7], [0,1,5,4], [2,3,7,6], [0,3,7,4], [1,2,6,5]],
                 rotationSpeed: {
-                    x: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    y: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    z: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    x: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    y: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    z: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
                 },
-                phaseOffset: Math.random() * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(1, totalSolids),
                 edgeGlow: randomNumber(this.config.solidEdgeGlowMin, this.config.solidEdgeGlowMax),
             },
             {
@@ -261,11 +303,11 @@ export class MetatronCubeEffect extends LayerEffect {
                 ],
                 faces: [[0,2,4], [0,4,3], [0,3,5], [0,5,2], [1,2,5], [1,5,3], [1,3,4], [1,4,2]],
                 rotationSpeed: {
-                    x: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    y: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    z: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    x: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    y: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    z: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
                 },
-                phaseOffset: Math.random() * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(2, totalSolids),
                 edgeGlow: randomNumber(this.config.solidEdgeGlowMin, this.config.solidEdgeGlowMax),
             },
             {
@@ -287,11 +329,11 @@ export class MetatronCubeEffect extends LayerEffect {
                     [8,9], [10,11]
                 ],
                 rotationSpeed: {
-                    x: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    y: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    z: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    x: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    y: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    z: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
                 },
-                phaseOffset: Math.random() * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(3, totalSolids),
                 edgeGlow: randomNumber(this.config.solidEdgeGlowMin, this.config.solidEdgeGlowMax),
             },
             {
@@ -311,11 +353,11 @@ export class MetatronCubeEffect extends LayerEffect {
                     [8,9], [10,11], [12,13], [14,15], [16,17], [18,19]
                 ],
                 rotationSpeed: {
-                    x: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    y: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
-                    z: randomNumber(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    x: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    y: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
+                    z: this.#getQuantizedSpeed(this.config.solidRotationSpeedMin, this.config.solidRotationSpeedMax),
                 },
-                phaseOffset: Math.random() * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(4, totalSolids),
                 edgeGlow: randomNumber(this.config.solidEdgeGlowMin, this.config.solidEdgeGlowMax),
             },
         ];
@@ -342,16 +384,17 @@ export class MetatronCubeEffect extends LayerEffect {
         const runes = [];
         const radius = baseRadius * this.config.outerRuneRadius;
         const runeSymbols = this.#getRuneSymbols();
+        const totalRunes = this.config.outerRuneCount;
         
-        for (let i = 0; i < this.config.outerRuneCount; i++) {
-            const angle = (i / this.config.outerRuneCount) * Math.PI * 2;
+        for (let i = 0; i < totalRunes; i++) {
+            const angle = (i / totalRunes) * Math.PI * 2;
             runes.push({
                 symbol: runeSymbols[i % runeSymbols.length],
                 angle: angle,
                 radius: radius,
                 size: this.config.outerRuneSize,
                 opacity: randomNumber(this.config.outerRuneOpacityMin, this.config.outerRuneOpacityMax),
-                phaseOffset: (i / this.config.outerRuneCount) * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(i, totalRunes),
             });
         }
         
@@ -365,16 +408,17 @@ export class MetatronCubeEffect extends LayerEffect {
         const glyphs = [];
         const radius = baseRadius * this.config.innerGlyphRadius;
         const glyphSymbols = this.#getGlyphSymbols();
+        const totalGlyphs = this.config.innerGlyphCount;
         
-        for (let i = 0; i < this.config.innerGlyphCount; i++) {
-            const angle = (i / this.config.innerGlyphCount) * Math.PI * 2;
+        for (let i = 0; i < totalGlyphs; i++) {
+            const angle = (i / totalGlyphs) * Math.PI * 2;
             glyphs.push({
                 symbol: glyphSymbols[i % glyphSymbols.length],
                 angle: angle,
                 radius: radius,
                 size: this.config.innerGlyphSize,
                 opacity: randomNumber(this.config.innerGlyphOpacityMin, this.config.innerGlyphOpacityMax),
-                phaseOffset: (i / this.config.innerGlyphCount) * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(i, totalGlyphs),
             });
         }
         
@@ -386,18 +430,19 @@ export class MetatronCubeEffect extends LayerEffect {
      */
     #generateParticles(centerX, centerY, baseRadius) {
         const particles = [];
+        const totalParticles = this.config.particleCount;
         
-        for (let i = 0; i < this.config.particleCount; i++) {
+        for (let i = 0; i < totalParticles; i++) {
             // Randomly assign to a line in the Metatron's Cube
             const lineIndex = Math.floor(Math.random() * 78);
             
             particles.push({
                 lineIndex: lineIndex,
                 progress: Math.random(), // 0 to 1 along the line
-                speed: randomNumber(this.config.particleSpeedMin, this.config.particleSpeedMax),
+                speed: this.#getQuantizedSpeed(this.config.particleSpeedMin, this.config.particleSpeedMax),
                 size: randomNumber(this.config.particleSizeMin, this.config.particleSizeMax),
                 glow: randomNumber(this.config.particleGlowMin, this.config.particleGlowMax),
-                phaseOffset: Math.random() * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(i, totalParticles),
                 trail: [],
             });
         }
@@ -410,17 +455,14 @@ export class MetatronCubeEffect extends LayerEffect {
      */
     #generateEnergyPulses() {
         const pulses = [];
+        const totalPulses = this.config.energyPulseCount;
         
-        for (let i = 0; i < this.config.energyPulseCount; i++) {
-            // Use integer speeds for perfect looping
-            const speedRange = Math.floor(this.config.energyPulseSpeedMax - this.config.energyPulseSpeedMin) + 1;
-            const speed = Math.floor(this.config.energyPulseSpeedMin + Math.random() * speedRange);
-            
+        for (let i = 0; i < totalPulses; i++) {
             pulses.push({
                 lineIndex: Math.floor(Math.random() * 78),
-                speed: speed,
+                speed: this.#getIntegerFrequency(this.config.energyPulseSpeedMin, this.config.energyPulseSpeedMax),
                 width: randomNumber(this.config.energyPulseWidthMin, this.config.energyPulseWidthMax),
-                phaseOffset: Math.random() * Math.PI * 2,
+                phaseOffset: this.#getPhaseOffset(i, totalPulses),
             });
         }
         
@@ -433,25 +475,27 @@ export class MetatronCubeEffect extends LayerEffect {
     #generateCentralMandala(centerX, centerY, baseRadius) {
         const layers = [];
         const mandalaRadius = baseRadius * 0.15;
+        const totalLayers = this.config.mandalaLayers;
+        const totalPetals = this.config.mandalaPetalCount;
         
-        for (let layer = 0; layer < this.config.mandalaLayers; layer++) {
+        for (let layer = 0; layer < totalLayers; layer++) {
             const layerRadius = mandalaRadius * (1 - layer * 0.3);
             const petals = [];
             
-            for (let i = 0; i < this.config.mandalaPetalCount; i++) {
-                const angle = (i / this.config.mandalaPetalCount) * Math.PI * 2;
+            for (let i = 0; i < totalPetals; i++) {
+                const angle = (i / totalPetals) * Math.PI * 2;
                 petals.push({
                     angle: angle,
                     radius: layerRadius,
                     size: layerRadius * 0.4,
-                    phaseOffset: (i / this.config.mandalaPetalCount) * Math.PI * 2,
+                    phaseOffset: this.#getPhaseOffset(i + layer * totalPetals, totalLayers * totalPetals),
                 });
             }
             
             layers.push({
                 petals: petals,
                 opacity: randomNumber(this.config.mandalaOpacityMin, this.config.mandalaOpacityMax),
-                rotationOffset: layer * (Math.PI / this.config.mandalaPetalCount),
+                rotationOffset: layer * (Math.PI / totalPetals),
             });
         }
         
@@ -973,7 +1017,7 @@ export class MetatronCubeEffect extends LayerEffect {
      */
     async #drawOuterRunes(canvas, currentFrame, numberOfFrames) {
         const progress = (currentFrame / numberOfFrames) * Math.PI * 2;
-        const rotation = progress * this.config.outerRuneRotationSpeed;
+        const rotation = progress * this.data.outerRuneRotationSpeed;
         
         for (const rune of this.data.outerRunes) {
             const angle = rune.angle + rotation;
@@ -1023,7 +1067,7 @@ export class MetatronCubeEffect extends LayerEffect {
      */
     async #drawInnerGlyphs(canvas, currentFrame, numberOfFrames) {
         const progress = (currentFrame / numberOfFrames) * Math.PI * 2;
-        const rotation = progress * this.config.innerGlyphRotationSpeed;
+        const rotation = progress * this.data.innerGlyphRotationSpeed;
         
         for (const glyph of this.data.innerGlyphs) {
             const angle = glyph.angle + rotation;
@@ -1073,7 +1117,7 @@ export class MetatronCubeEffect extends LayerEffect {
      */
     async #drawCentralMandala(canvas, currentFrame, numberOfFrames) {
         const progress = (currentFrame / numberOfFrames) * Math.PI * 2;
-        const rotation = progress * this.config.mandalaRotationSpeed;
+        const rotation = progress * this.data.mandalaRotationSpeed;
         
         for (const layer of this.data.centralMandala) {
             const layerRotation = rotation + layer.rotationOffset;
