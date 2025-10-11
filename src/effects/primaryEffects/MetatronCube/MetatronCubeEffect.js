@@ -94,15 +94,17 @@ export class MetatronCubeEffect extends LayerEffect {
     }
 
     /**
-     * Helper: Quantize speed to integer for perfect looping
-     * If perfectLoop is disabled, returns original value
+     * Helper: Quantize speed to integer magnitude for perfect looping while preserving direction.
+     * If perfectLoop is disabled, returns original value.
      */
     #quantizeSpeed(speed) {
         if (!this.config.perfectLoop) {
             return speed;
         }
-        // Round to nearest integer, minimum 1
-        return Math.max(1, Math.round(speed));
+        // Preserve sign to keep rotation direction; quantize magnitude for seamless loops
+        const sign = speed < 0 ? -1 : 1;
+        const magnitude = Math.max(1, Math.round(Math.abs(speed)));
+        return sign * magnitude;
     }
 
     /**

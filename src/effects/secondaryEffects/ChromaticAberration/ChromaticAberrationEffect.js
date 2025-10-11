@@ -320,17 +320,38 @@ export class ChromaticAberrationEffect extends LayerEffect {
   }
 
   /**
-   * Parse hex color to RGB object
+   * Parse hex color to RGB object with robust validation and fallback
+   * Supports: '#RRGGBB', 'RRGGBB', '#RGB', 'RGB'
    */
-  #parseColor(hex) {
-    // Remove # if present
-    hex = hex.replace('#', '');
-    
-    // Parse hex to RGB
+  #parseColor(hex, fallback = '#FFFFFF') {
+    // Validate input; use fallback if missing/invalid type
+    if (typeof hex !== 'string' || !hex) {
+      hex = fallback;
+    }
+
+    // Normalize and strip prefixes
+    hex = String(hex).trim();
+    if (hex.startsWith('0x')) hex = hex.slice(2);
+    if (hex.startsWith('#')) hex = hex.slice(1);
+
+    // Expand 3-digit hex to 6-digit
+    if (hex.length === 3) {
+      hex = hex.split('').map(c => c + c).join('');
+    }
+
+    // If invalid, fall back
+    const isValid = /^[0-9a-fA-F]{6}$/.test(hex);
+    if (!isValid) {
+      let fb = String(fallback).replace(/^#/, '');
+      if (fb.length === 3) fb = fb.split('').map(c => c + c).join('');
+      if (!/^[0-9a-fA-F]{6}$/.test(fb)) fb = 'FFFFFF';
+      hex = fb;
+    }
+
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
-    
+
     return { r, g, b };
   }
 }

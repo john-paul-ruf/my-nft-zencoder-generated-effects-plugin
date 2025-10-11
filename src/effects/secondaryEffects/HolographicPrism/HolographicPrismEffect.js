@@ -4,6 +4,7 @@ import { getRandomFromArray, randomNumber } from 'my-nft-gen/src/core/math/rando
 import sharp from 'sharp';
 import { globalBufferPool } from 'my-nft-gen/src/core/pool/BufferPool.js';
 import { LayerFactory } from 'my-nft-gen/src/core/factory/layer/LayerFactory.js';
+import { HolographicPrismConfig } from './HolographicPrismConfig.js';
 
 export class HolographicPrismEffect extends LayerEffect {
   static _name_ = 'holographic-prism';
@@ -15,7 +16,7 @@ export class HolographicPrismEffect extends LayerEffect {
 
   constructor({
     name = HolographicPrismEffect._name_,
-    config,
+    config = new HolographicPrismConfig({}),
     settings
   }) {
     super({
