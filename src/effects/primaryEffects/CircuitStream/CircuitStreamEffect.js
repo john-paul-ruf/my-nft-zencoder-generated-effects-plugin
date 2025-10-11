@@ -152,7 +152,8 @@ export class CircuitStreamEffect extends LayerEffect {
                 endPoint,
                 path,
                 opacity: randomNumber(this.config.traceOpacityMin, this.config.traceOpacityMax),
-                pulseOffset: randomNumber(0, 100),
+                // ✅ FIXED: Normalize pulseOffset to 0-1 range for perfect loop calculations
+                pulseOffset: randomNumber(0, 1),
                 pulseSpeed: randomNumber(this.config.energyPulseFrequencyMin, this.config.energyPulseFrequencyMax),
                 flowSpeed: randomNumber(this.config.energyFlowSpeedMin, this.config.energyFlowSpeedMax),
                 isActive: Math.random() > 0.3,
@@ -210,7 +211,8 @@ export class CircuitStreamEffect extends LayerEffect {
                 y,
                 radius: randomNumber(this.config.nodeRadiusMin, this.config.nodeRadiusMax),
                 pulseIntensity: randomNumber(this.config.nodePulseIntensityMin, this.config.nodePulseIntensityMax),
-                pulseOffset: randomNumber(0, 100),
+                // ✅ FIXED: Normalize pulseOffset to 0-1 range for perfect loop calculations
+                pulseOffset: randomNumber(0, 1),
                 blinkFrequency: randomNumber(this.config.gateBlinkFrequencyMin, this.config.gateBlinkFrequencyMax),
                 chargeTime: randomNumber(this.config.gateChargeTimeMin, this.config.gateChargeTimeMax),
                 dischargeTime: randomNumber(this.config.gateDischargeTimeMin, this.config.gateDischargeTimeMax),
@@ -240,7 +242,8 @@ export class CircuitStreamEffect extends LayerEffect {
                 size: randomNumber(this.config.packetSizeMin, this.config.packetSizeMax),
                 speed: randomNumber(this.config.packetSpeedMin, this.config.packetSpeedMax),
                 glowRadius: randomNumber(this.config.packetGlowRadiusMin, this.config.packetGlowRadiusMax),
-                startOffset: randomNumber(0, 100),
+                // ✅ FIXED: Normalize startOffset to 0-1 range for perfect loop calculations
+                startOffset: randomNumber(0, 1),
                 direction: Math.random() > 0.5 ? 1 : -1,
                 dataBit: Math.random() > 0.5 ? '1' : '0',
                 colorOffset: randomNumber(0, 50),
@@ -276,7 +279,8 @@ export class CircuitStreamEffect extends LayerEffect {
                 speed: randomNumber(this.config.signalWaveSpeedMin, this.config.signalWaveSpeedMax),
                 amplitude: randomNumber(this.config.signalWaveAmplitudeMin, this.config.signalWaveAmplitudeMax),
                 decayRate: randomNumber(this.config.signalDecayRateMin, this.config.signalDecayRateMax),
-                phaseOffset: randomNumber(0, Math.PI * 2),
+                // ✅ FIXED: Normalize phaseOffset to 0-1 range for perfect loop calculations
+                phaseOffset: randomNumber(0, 1),
                 frequency: randomNumber(0.5, 2),
                 originX,
                 originY,
@@ -390,13 +394,21 @@ export class CircuitStreamEffect extends LayerEffect {
     }
 
     async #drawTracesToCanvas(canvas, currentFrame, numberOfFrames) {
-        const {traces, traceColor, activeTraceColor, traceWidth} = this.data;
+        const {traces, traceColor, activeTraceColor, traceWidth, perfectLoop} = this.data;
 
         for (const trace of traces) {
-            // Calculate pulse animation for active traces using simple sine wave
+            // ✅ FIXED: Calculate pulse animation for active traces with perfect looping
             let pulseIntensity = 0;
             if (trace.isActive) {
-                const progress = ((currentFrame + trace.pulseOffset) / numberOfFrames) * trace.pulseSpeed * Math.PI * 2;
+                let progress;
+                if (perfectLoop) {
+                    // Perfect loop: ensure sine wave completes full cycles
+                    const normalizedFrame = (currentFrame % numberOfFrames) / numberOfFrames;
+                    progress = (normalizedFrame + trace.pulseOffset) * trace.pulseSpeed * Math.PI * 2;
+                } else {
+                    // Original behavior
+                    progress = ((currentFrame + trace.pulseOffset * numberOfFrames) / numberOfFrames) * trace.pulseSpeed * Math.PI * 2;
+                }
                 pulseIntensity = (Math.sin(progress) + 1) / 2; // 0 to 1
             }
 
@@ -416,12 +428,21 @@ export class CircuitStreamEffect extends LayerEffect {
     }
 
     async #drawSignalWavesToCanvas(canvas, currentFrame, numberOfFrames) {
-        const {signalWaves, signalColor, width, height} = this.data;
+        const {signalWaves, signalColor, width, height, perfectLoop} = this.data;
         const maxRadius = Math.max(width, height);
 
         for (const wave of signalWaves) {
-            // Simple linear expansion with looping
-            const progress = ((currentFrame + wave.phaseOffset * 10) % numberOfFrames) / numberOfFrames;
+            // ✅ FIXED: Calculate wave expansion with perfect looping
+            let progress;
+            if (perfectLoop) {
+                // Perfect loop: normalize to 0-1 range
+                const normalizedFrame = (currentFrame % numberOfFrames) / numberOfFrames;
+                progress = (normalizedFrame + wave.phaseOffset) % 1.0;
+            } else {
+                // Original behavior
+                const adjustedFrame = currentFrame + wave.phaseOffset * numberOfFrames;
+                progress = (adjustedFrame % numberOfFrames) / numberOfFrames;
+            }
             const waveProgress = progress * maxRadius * wave.speed;
 
             // Calculate opacity based on decay
@@ -442,12 +463,23 @@ export class CircuitStreamEffect extends LayerEffect {
     }
 
     async #drawNodesToCanvas(canvas, currentFrame, numberOfFrames) {
-        const {nodes, nodeColor, nodeCoreColor} = this.data;
+        const {nodes, nodeColor, nodeCoreColor, perfectLoop} = this.data;
 
         for (const node of nodes) {
-            // Simple sine wave for charge/discharge cycle
-            const cycleDuration = node.chargeTime + node.dischargeTime;
-            const progress = ((currentFrame + node.pulseOffset) / cycleDuration) * Math.PI * 2;
+            // ✅ FIXED: Calculate charge/discharge cycle with perfect looping
+            let progress;
+            if (perfectLoop) {
+                // Perfect loop: normalize to animation duration
+                const normalizedFrame = (currentFrame % numberOfFrames) / numberOfFrames;
+                const cycleDuration = node.chargeTime + node.dischargeTime;
+                // Scale cycle to fit within animation duration
+                const cyclesPerAnimation = numberOfFrames / cycleDuration;
+                progress = (normalizedFrame * cyclesPerAnimation + node.pulseOffset) * Math.PI * 2;
+            } else {
+                // Original behavior
+                const cycleDuration = node.chargeTime + node.dischargeTime;
+                progress = ((currentFrame + node.pulseOffset * cycleDuration) / cycleDuration) * Math.PI * 2;
+            }
             const chargeLevel = (Math.sin(progress) + 1) / 2; // 0 to 1
 
             // Draw node based on type
@@ -488,16 +520,26 @@ export class CircuitStreamEffect extends LayerEffect {
     }
 
     async #drawDataPacketsToCanvas(canvas, currentFrame, numberOfFrames) {
-        const {packets, traces, dataPacketColor} = this.data;
+        const {packets, traces, dataPacketColor, perfectLoop} = this.data;
 
         for (const packet of packets) {
             // Find the trace this packet belongs to
             const trace = traces.find(t => t.id === packet.traceId);
             if (!trace || trace.path.length < 2) continue;
 
-            // Simple linear progress along path
-            const cycleFrames = numberOfFrames / packet.speed;
-            const progress = ((currentFrame + packet.startOffset) % cycleFrames) / cycleFrames;
+            // ✅ FIXED: Calculate progress to ensure perfect loops
+            let progress;
+            if (perfectLoop) {
+                // Perfect loop: normalize to 0-1 range over the full animation duration
+                // This ensures frame 0 and frame numberOfFrames have identical positions
+                const normalizedFrame = (currentFrame % numberOfFrames) / numberOfFrames;
+                const speedCycles = packet.speed; // Number of complete cycles over the animation
+                progress = (normalizedFrame * speedCycles + packet.startOffset) % 1.0;
+            } else {
+                // Original behavior: may not loop perfectly but allows fractional cycles
+                const cycleFrames = numberOfFrames / packet.speed;
+                progress = ((currentFrame + packet.startOffset * numberOfFrames) % cycleFrames) / cycleFrames;
+            }
 
             // Get position on trace path
             const position = this.#getPositionOnPath(trace.path, progress, packet.direction);
