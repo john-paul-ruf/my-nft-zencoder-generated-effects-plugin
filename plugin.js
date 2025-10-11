@@ -23,6 +23,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { LiquidChromaticEffect } = await import('./src/effects/secondaryEffects/LiquidChromatic/LiquidChromaticEffect.js');
         const { LiquidChromaticConfig } = await import('./src/effects/secondaryEffects/LiquidChromatic/LiquidChromaticConfig.js');
         
+        console.log('📦 [Plugin] Importing HolographicPrism effect...');
+        const { HolographicPrismEffect } = await import('./src/effects/secondaryEffects/HolographicPrism/index.js');
+        const { HolographicPrismConfig } = await import('./src/effects/secondaryEffects/HolographicPrism/index.js');
+        
         console.log('📦 [Plugin] Importing CircuitStream effect...');
         const { CircuitStreamEffect } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamEffect.js');
         const { CircuitStreamConfig } = await import('./src/effects/primaryEffects/CircuitStream/CircuitStreamConfig.js');
@@ -71,6 +75,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
         LiquidChromaticEffect._configClass_ = LiquidChromaticConfig;
+        HolographicPrismEffect._configClass_ = HolographicPrismConfig;
         CircuitStreamEffect._configClass_ = CircuitStreamConfig;
         MetatronCubeEffect._configClass_ = MetatronCubeConfig;
         CymaticsResonanceEffect._configClass_ = CymaticsResonanceConfig;
@@ -186,6 +191,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: LiquidChromaticEffect._tags_ || ['effect', 'secondary', 'liquid', 'chromatic', 'iridescent', 'flow', 'animated']
             });
             console.log(`✅ Registered: ${LiquidChromaticEffect._name_} as SECONDARY effect`);
+        }
+
+        // Register HolographicPrism effect as SECONDARY
+        console.log(`📦 Effect name: ${HolographicPrismEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(HolographicPrismEffect._name_)) {
+            console.log(`ℹ️ Effect '${HolographicPrismEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(HolographicPrismEffect, EffectCategories.SECONDARY, {
+                displayName: HolographicPrismEffect._displayName_ || 'Holographic Prism',
+                description: HolographicPrismEffect._description_ || 'Transforms layers into holographic displays with chromatic dispersion, light refraction, and iridescent shimmer',
+                version: HolographicPrismEffect._version_ || '1.0.0',
+                author: HolographicPrismEffect._author_ || 'Zencoder',
+                tags: HolographicPrismEffect._tags_ || ['effect', 'secondary', 'holographic', 'prism', 'chromatic', 'iridescent']
+            });
+            console.log(`✅ Registered: ${HolographicPrismEffect._name_} as SECONDARY effect`);
         }
 
         // Register OrbitBloom effect as FINAL
