@@ -96,13 +96,19 @@ export class MetatronCubeEffect extends LayerEffect {
     #generateMetatronCube(centerX, centerY, baseRadius) {
         const spheres = [];
         
+        // Helper to generate integer pulse frequency for perfect looping
+        const getIntegerFrequency = () => {
+            const range = Math.floor(this.config.vertexPulseFrequencyMax - this.config.vertexPulseFrequencyMin) + 1;
+            return Math.floor(this.config.vertexPulseFrequencyMin + Math.random() * range);
+        };
+        
         // Central sphere
         spheres.push({
             x: centerX,
             y: centerY,
             radius: randomNumber(this.config.sphereRadiusMin, this.config.sphereRadiusMax),
             glowRadius: randomNumber(this.config.vertexGlowRadiusMin, this.config.vertexGlowRadiusMax),
-            pulseFrequency: randomNumber(this.config.vertexPulseFrequencyMin, this.config.vertexPulseFrequencyMax),
+            pulseFrequency: getIntegerFrequency(),
             phaseOffset: Math.random() * Math.PI * 2,
         });
         
@@ -115,7 +121,7 @@ export class MetatronCubeEffect extends LayerEffect {
                 y: centerY + Math.sin(angle) * innerRadius,
                 radius: randomNumber(this.config.sphereRadiusMin, this.config.sphereRadiusMax),
                 glowRadius: randomNumber(this.config.vertexGlowRadiusMin, this.config.vertexGlowRadiusMax),
-                pulseFrequency: randomNumber(this.config.vertexPulseFrequencyMin, this.config.vertexPulseFrequencyMax),
+                pulseFrequency: getIntegerFrequency(),
                 phaseOffset: Math.random() * Math.PI * 2,
             });
         }
@@ -129,19 +135,25 @@ export class MetatronCubeEffect extends LayerEffect {
                 y: centerY + Math.sin(angle) * outerRadius,
                 radius: randomNumber(this.config.sphereRadiusMin, this.config.sphereRadiusMax),
                 glowRadius: randomNumber(this.config.vertexGlowRadiusMin, this.config.vertexGlowRadiusMax),
-                pulseFrequency: randomNumber(this.config.vertexPulseFrequencyMin, this.config.vertexPulseFrequencyMax),
+                pulseFrequency: getIntegerFrequency(),
                 phaseOffset: Math.random() * Math.PI * 2,
             });
         }
         
         // Generate all connecting lines (78 total)
         const lines = [];
+        // Helper to generate integer pulse speed for perfect looping
+        const getIntegerSpeed = () => {
+            const range = Math.floor(this.config.energyPulseSpeedMax - this.config.energyPulseSpeedMin) + 1;
+            return Math.floor(this.config.energyPulseSpeedMin + Math.random() * range);
+        };
+        
         for (let i = 0; i < spheres.length; i++) {
             for (let j = i + 1; j < spheres.length; j++) {
                 lines.push({
                     start: spheres[i],
                     end: spheres[j],
-                    pulseSpeed: randomNumber(this.config.energyPulseSpeedMin, this.config.energyPulseSpeedMax),
+                    pulseSpeed: getIntegerSpeed(),
                     phaseOffset: Math.random() * Math.PI * 2,
                 });
             }
@@ -400,9 +412,13 @@ export class MetatronCubeEffect extends LayerEffect {
         const pulses = [];
         
         for (let i = 0; i < this.config.energyPulseCount; i++) {
+            // Use integer speeds for perfect looping
+            const speedRange = Math.floor(this.config.energyPulseSpeedMax - this.config.energyPulseSpeedMin) + 1;
+            const speed = Math.floor(this.config.energyPulseSpeedMin + Math.random() * speedRange);
+            
             pulses.push({
                 lineIndex: Math.floor(Math.random() * 78),
-                speed: randomNumber(this.config.energyPulseSpeedMin, this.config.energyPulseSpeedMax),
+                speed: speed,
                 width: randomNumber(this.config.energyPulseWidthMin, this.config.energyPulseWidthMax),
                 phaseOffset: Math.random() * Math.PI * 2,
             });
@@ -642,12 +658,12 @@ export class MetatronCubeEffect extends LayerEffect {
      * Draw Metatron's Cube
      */
     async #drawMetatronCube(canvas, currentFrame, numberOfFrames) {
-        const progress = (currentFrame / numberOfFrames) * Math.PI * 2;
+        const animProgress = (currentFrame / numberOfFrames) * Math.PI * 2;
         const {spheres, lines} = this.data.metatronCube;
         
         // Calculate rotation angle if enabled
         const rotationAngle = this.data.cubeRotationEnabled 
-            ? progress * this.data.cubeRotationSpeed 
+            ? animProgress * this.data.cubeRotationSpeed 
             : 0;
         
         // Helper function to rotate a point around center
@@ -672,8 +688,8 @@ export class MetatronCubeEffect extends LayerEffect {
                 ? rotatePoint(line.end.x, line.end.y, rotationAngle)
                 : {x: line.end.x, y: line.end.y};
             
-            // Enhanced pulsing effect along the line
-            const pulseProgress = (progress * line.pulseSpeed * this.data.linePulseSpeed + line.phaseOffset) % (Math.PI * 2);
+            // Enhanced pulsing effect along the line (perfect loop)
+            const pulseProgress = (animProgress * line.pulseSpeed * this.data.linePulseSpeed + line.phaseOffset) % (Math.PI * 2);
             const intensity = (Math.sin(pulseProgress) + 1) / 2;
             const pulseIntensity = this.data.linePulseIntensity;
             
@@ -700,7 +716,8 @@ export class MetatronCubeEffect extends LayerEffect {
                 ? rotatePoint(sphere.x, sphere.y, rotationAngle)
                 : {x: sphere.x, y: sphere.y};
             
-            const pulseProgress = (progress * sphere.pulseFrequency + sphere.phaseOffset) % (Math.PI * 2);
+            // Sphere pulsing (perfect loop with integer frequency)
+            const pulseProgress = (animProgress * sphere.pulseFrequency + sphere.phaseOffset) % (Math.PI * 2);
             const pulseScale = 1.0 + Math.sin(pulseProgress) * 0.2;
             const glowScale = 1.0 + Math.sin(pulseProgress) * 0.5;
             
@@ -833,8 +850,9 @@ export class MetatronCubeEffect extends LayerEffect {
             const line = lines[pulse.lineIndex];
             if (!line) continue;
             
-            // Calculate pulse position along line
-            const pulseProgress = ((progress * pulse.speed + pulse.phaseOffset / (Math.PI * 2)) % 1);
+            // Calculate pulse position along line (perfect loop)
+            // Use animProgress (0 to 2π) for smooth looping with phase offset
+            const pulseProgress = ((animProgress * pulse.speed + pulse.phaseOffset) / (Math.PI * 2)) % 1;
             
             // Apply rotation to line endpoints FIRST
             const startPos = rotationAngle !== 0 

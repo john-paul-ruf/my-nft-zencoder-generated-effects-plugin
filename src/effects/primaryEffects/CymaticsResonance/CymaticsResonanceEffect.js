@@ -204,7 +204,8 @@ export class CymaticsResonanceEffect extends LayerEffect {
     }
 
     #calculateLoopPhase(currentFrame, numberOfFrames) {
-        const progress = currentFrame / numberOfFrames;
+        // Ensure perfect loop by preventing duplicate frame at loop point
+        const progress = (currentFrame % numberOfFrames) / numberOfFrames;
         
         // Use sine wave for smooth transitions
         const cyclePhase = Math.sin(progress * Math.PI * 2 * this.data.morphComplexity);

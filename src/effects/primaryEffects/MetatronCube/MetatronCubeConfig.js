@@ -54,16 +54,16 @@ export class MetatronCubeConfig extends EffectConfig {
                     
                     // Energy Pulses
                     energyPulseCount = 24,
-                    energyPulseSpeedMin = 0.8,
-                    energyPulseSpeedMax = 1.2,
+                    energyPulseSpeedMin = 1,
+                    energyPulseSpeedMax = 3,
                     energyPulseWidthMin = 3,
                     energyPulseWidthMax = 6,
                     
                     // Vertex Effects
                     vertexGlowRadiusMin = 8,
                     vertexGlowRadiusMax = 16,
-                    vertexPulseFrequencyMin = 0.3,
-                    vertexPulseFrequencyMax = 0.7,
+                    vertexPulseFrequencyMin = 1,
+                    vertexPulseFrequencyMax = 3,
                     
                     // Central Mandala
                     showCentralMandala = true,

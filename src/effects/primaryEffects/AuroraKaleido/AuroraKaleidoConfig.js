@@ -14,9 +14,9 @@ export class AuroraKaleidoConfig extends EffectConfig {
         this.freqX = cfg.freqX ?? 3; // integer for perfect loop
         this.freqY = cfg.freqY ?? 2; // integer for perfect loop
         this.phaseOffset = cfg.phaseOffset ?? 0;
-        this.swirlSpeed = cfg.swirlSpeed ?? 0.25;
+        this.swirlSpeed = cfg.swirlSpeed ?? 1.0; // integer for perfect loop
         this.swirlAmplitude = cfg.swirlAmplitude ?? 0.35;
-        this.morphSpeed = cfg.morphSpeed ?? 0.5;
+        this.morphSpeed = cfg.morphSpeed ?? 1.0; // integer for perfect loop
         this.morphDepth = cfg.morphDepth ?? 0.4; // 0..1
         this.ribbonTrail = cfg.ribbonTrail ?? 48; // subdivisions per ribbon
         this.renderMode = cfg.renderMode ?? 'ribbons'; // 'ribbons' | 'streaks' | 'points'
