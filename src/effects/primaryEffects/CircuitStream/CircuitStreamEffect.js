@@ -403,8 +403,11 @@ export class CircuitStreamEffect extends LayerEffect {
                 let progress;
                 if (perfectLoop) {
                     // Perfect loop: ensure sine wave completes full cycles
-                    const normalizedFrame = (currentFrame % numberOfFrames) / numberOfFrames;
-                    progress = (normalizedFrame + trace.pulseOffset) * trace.pulseSpeed * Math.PI * 2;
+                    // Round pulseSpeed to integer for perfect loops
+                    const pulseCycles = Math.round(trace.pulseSpeed);
+                    // Use (numberOfFrames - 1) so last frame matches first frame
+                    const normalizedFrame = currentFrame / Math.max(1, numberOfFrames - 1);
+                    progress = (normalizedFrame * pulseCycles + trace.pulseOffset) * Math.PI * 2;
                 } else {
                     // Original behavior
                     progress = ((currentFrame + trace.pulseOffset * numberOfFrames) / numberOfFrames) * trace.pulseSpeed * Math.PI * 2;
@@ -435,9 +438,12 @@ export class CircuitStreamEffect extends LayerEffect {
             // ✅ FIXED: Calculate wave expansion with perfect looping
             let progress;
             if (perfectLoop) {
-                // Perfect loop: normalize to 0-1 range
-                const normalizedFrame = (currentFrame % numberOfFrames) / numberOfFrames;
-                progress = (normalizedFrame + wave.phaseOffset) % 1.0;
+                // Perfect loop: waves complete full expansion cycles
+                // Round speed to integer cycles for perfect loop
+                const waveCycles = Math.round(wave.speed);
+                // Use (numberOfFrames - 1) so last frame matches first frame
+                const normalizedFrame = currentFrame / Math.max(1, numberOfFrames - 1);
+                progress = ((normalizedFrame * waveCycles) + wave.phaseOffset) % 1.0;
             } else {
                 // Original behavior
                 const adjustedFrame = currentFrame + wave.phaseOffset * numberOfFrames;
@@ -469,10 +475,12 @@ export class CircuitStreamEffect extends LayerEffect {
             // ✅ FIXED: Calculate charge/discharge cycle with perfect looping
             let progress;
             if (perfectLoop) {
-                // Perfect loop: normalize to 0-1 range, use blinkFrequency for cycles
-                const normalizedFrame = (currentFrame % numberOfFrames) / numberOfFrames;
-                // blinkFrequency determines how many complete cycles per animation loop
-                progress = (normalizedFrame * node.blinkFrequency + node.pulseOffset) * Math.PI * 2;
+                // Perfect loop: ensure sine wave completes integer cycles
+                // Round blinkFrequency to integer for perfect loops
+                const blinkCycles = Math.round(node.blinkFrequency);
+                // Use (numberOfFrames - 1) so last frame matches first frame
+                const normalizedFrame = currentFrame / Math.max(1, numberOfFrames - 1);
+                progress = (normalizedFrame * blinkCycles + node.pulseOffset) * Math.PI * 2;
             } else {
                 // Original behavior
                 const cycleDuration = node.chargeTime + node.dischargeTime;
@@ -528,11 +536,14 @@ export class CircuitStreamEffect extends LayerEffect {
             // ✅ FIXED: Calculate progress to ensure perfect loops
             let progress;
             if (perfectLoop) {
-                // Perfect loop: normalize to 0-1 range over the full animation duration
-                // This ensures frame 0 and frame numberOfFrames have identical positions
-                const normalizedFrame = (currentFrame % numberOfFrames) / numberOfFrames;
-                const speedCycles = packet.speed; // Number of complete cycles over the animation
-                progress = (normalizedFrame * speedCycles + packet.startOffset) % 1.0;
+                // Perfect loop: packets complete integer number of cycles to return to start
+                // Round speed to nearest integer for perfect looping
+                const speedCycles = Math.round(packet.speed);
+                // Use currentFrame directly, not modulo, for smooth transition
+                // Divide by (numberOfFrames - 1) so last frame matches first frame position
+                const normalizedFrame = currentFrame / Math.max(1, numberOfFrames - 1);
+                // Calculate progress with integer cycles for perfect loop
+                progress = ((normalizedFrame * speedCycles) + packet.startOffset) % 1.0;
             } else {
                 // Original behavior: may not loop perfectly but allows fractional cycles
                 const cycleFrames = numberOfFrames / packet.speed;
