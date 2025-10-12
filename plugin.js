@@ -364,7 +364,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(SpectralOverwatchEffect._name_)) {
             console.log(`ℹ️ Effect '${SpectralOverwatchEffect._name_}' is already registered, skipping...`);
         } else {
-            EffectRegistry.registerGlobal(SpectralOverwatchEffect, EffectCategories.FINAL_IMAGE, {
+            EffectRegistry.registerGlobal(SpectralOverwatchEffect, EffectCategories.KEY_FRAME, {
                 displayName: SpectralOverwatchEffect._displayName_ || 'Spectral Overwatch',
                 description: SpectralOverwatchEffect._description_ || 'Keyframe spectral sweep with prismatic caustics and perfect per-window looping.',
                 version: SpectralOverwatchEffect._version_ || '1.0.1',
@@ -379,7 +379,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(TacticalPulseGridEffect._name_)) {
             console.log(`ℹ️ Effect '${TacticalPulseGridEffect._name_}' is already registered, skipping...`);
         } else {
-            EffectRegistry.registerGlobal(TacticalPulseGridEffect, EffectCategories.FINAL_IMAGE, {
+            EffectRegistry.registerGlobal(TacticalPulseGridEffect, EffectCategories.KEY_FRAME, {
                 displayName: TacticalPulseGridEffect._displayName_ || 'Tactical Pulse Grid',
                 description: TacticalPulseGridEffect._description_ || 'Tactical HUD overlay with scanning pulses, targeting reticles, and digital interference.',
                 version: TacticalPulseGridEffect._version_ || '1.0.0',
@@ -394,7 +394,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(AuroraCascadeEffect._name_)) {
             console.log(`ℹ️ Effect '${AuroraCascadeEffect._name_}' is already registered, skipping...`);
         } else {
-            EffectRegistry.registerGlobal(AuroraCascadeEffect, EffectCategories.FINAL_IMAGE, {
+            EffectRegistry.registerGlobal(AuroraCascadeEffect, EffectCategories.KEY_FRAME, {
                 displayName: AuroraCascadeEffect._displayName_ || 'Aurora Cascade',
                 description: AuroraCascadeEffect._description_ || 'Mesmerizing aurora borealis effect with flowing ribbons of light and particle systems.',
                 version: AuroraCascadeEffect._version_ || '1.0.0',
