@@ -84,6 +84,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         const { HoloFoilEffect } = await import('./src/effects/finalImageEffects/HoloFoil/HoloFoilEffect.js');
         const { HoloFoilConfig } = await import('./src/effects/finalImageEffects/HoloFoil/HoloFoilConfig.js');
         
+        // Import SpectralOverwatch FINAL effect
+        console.log('📦 [Plugin] Importing SpectralOverwatch final effect...');
+        const { SpectralOverwatchEffect, SpectralOverwatchConfig } = await import('./src/effects/keyframeEffects/SpectralOverwatch/index.js');
+        
         // Set the config class reference
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
@@ -101,6 +105,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         ChromaticAberrationEffect._configClass_ = ChromaticAberrationConfig;
         PrismaticShatterEffect._configClass_ = PrismaticShatterConfig;
         HoloFoilEffect._configClass_ = HoloFoilConfig;
+        SpectralOverwatchEffect._configClass_ = SpectralOverwatchConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -342,6 +347,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: HoloFoilEffect._tags_ || ['effect', 'final', 'post', 'holographic', 'foil', 'prismatic', 'animated']
             });
             console.log(`✅ Registered: ${HoloFoilEffect._name_} as FINAL effect`);
+        }
+
+        // Register SpectralOverwatch effect as FINAL
+        console.log(`📦 Effect name: ${SpectralOverwatchEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(SpectralOverwatchEffect._name_)) {
+            console.log(`ℹ️ Effect '${SpectralOverwatchEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(SpectralOverwatchEffect, EffectCategories.FINAL_IMAGE, {
+                displayName: SpectralOverwatchEffect._displayName_ || 'Spectral Overwatch',
+                description: SpectralOverwatchEffect._description_ || 'Keyframe spectral sweep with prismatic caustics and perfect per-window looping.',
+                version: SpectralOverwatchEffect._version_ || '1.0.1',
+                author: SpectralOverwatchEffect._author_ || 'Zencoder',
+                tags: SpectralOverwatchEffect._tags_ || ['effect', 'final', 'post', 'spectral', 'caustic', 'loop', 'animated']
+            });
+            console.log(`✅ Registered: ${SpectralOverwatchEffect._name_} as FINAL effect`);
         }
 
         // Verify registration in the global registry

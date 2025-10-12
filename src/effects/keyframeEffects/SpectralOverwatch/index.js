@@ -1,0 +1,1 @@
+export { SpectralOverwatchEffect, SpectralOverwatchConfig } from './SpectralOverwatchEffect.js';
