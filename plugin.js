@@ -92,6 +92,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         console.log('📦 [Plugin] Importing TacticalPulseGrid keyframe effect...');
         const { TacticalPulseGridEffect, TacticalPulseGridConfig } = await import('./src/effects/keyframeEffects/TacticalPulseGrid/index.js');
         
+        // Import AuroraCascade KEYFRAME effect
+        console.log('📦 [Plugin] Importing AuroraCascade keyframe effect...');
+        const { AuroraCascadeEffect, AuroraCascadeConfig } = await import('./src/effects/keyframeEffects/AuroraCascade/AuroraCascadeEffect.js');
+        
         // Set the config class reference
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
@@ -111,6 +115,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         HoloFoilEffect._configClass_ = HoloFoilConfig;
         SpectralOverwatchEffect._configClass_ = SpectralOverwatchConfig;
         TacticalPulseGridEffect._configClass_ = TacticalPulseGridConfig;
+        AuroraCascadeEffect._configClass_ = AuroraCascadeConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -382,6 +387,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: TacticalPulseGridEffect._tags_ || ['effect', 'keyframe', 'tactical', 'hud', 'pulse', 'grid', 'animated']
             });
             console.log(`✅ Registered: ${TacticalPulseGridEffect._name_} as FINAL effect`);
+        }
+
+        // Register AuroraCascade effect as FINAL (keyframe effect)
+        console.log(`📦 Effect name: ${AuroraCascadeEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(AuroraCascadeEffect._name_)) {
+            console.log(`ℹ️ Effect '${AuroraCascadeEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(AuroraCascadeEffect, EffectCategories.FINAL_IMAGE, {
+                displayName: AuroraCascadeEffect._displayName_ || 'Aurora Cascade',
+                description: AuroraCascadeEffect._description_ || 'Mesmerizing aurora borealis effect with flowing ribbons of light and particle systems.',
+                version: AuroraCascadeEffect._version_ || '1.0.0',
+                author: AuroraCascadeEffect._author_ || 'Zencoder',
+                tags: AuroraCascadeEffect._tags_ || ['effect', 'keyframe', 'aurora', 'cascade', 'particles', 'animated']
+            });
+            console.log(`✅ Registered: ${AuroraCascadeEffect._name_} as FINAL effect`);
         }
 
         // Verify registration in the global registry
