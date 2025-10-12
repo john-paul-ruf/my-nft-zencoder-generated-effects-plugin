@@ -1,10 +1,10 @@
 // File: src/effects/finalImageEffects/SpectralOverwatch/SpectralOverwatchEffect.js
 // Final-image keyframe effect with perfect per-window loop and transparent-background respect
 
-import { LayerEffect } from '../my-nft-gen/src/core/layer/LayerEffect.js';
-import { EffectConfig } from '../my-nft-gen/src/core/layer/EffectConfig.js';
+import { LayerEffect } from 'my-nft-gen/src/core/layer/LayerEffect.js';
+import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
 import sharp from 'sharp';
-import { globalBufferPool } from '../my-nft-gen/src/core/pool/BufferPool.js';
+import { globalBufferPool } from 'my-nft-gen/src/core/pool/BufferPool.js';
 
 // CONFIG — flat, compliant with keyFrames and glitchFrameCount
 export class SpectralOverwatchConfig extends EffectConfig {

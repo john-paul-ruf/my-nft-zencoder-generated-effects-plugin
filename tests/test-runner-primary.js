@@ -3,10 +3,10 @@
 // - Runs any PRIMARY effect by name and optionally writes an output PNG
 // - Keeps dependencies injected (DIP) and avoids hardcoding any specific effect (OCP)
 
-import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
-import { Settings } from 'my-nft-gen/src/core/Settings.js';
-import { EffectCategories } from 'my-nft-gen/src/core/registry/EffectCategories.js';
-import { register as registerPlugin } from './plugin.js';
+import { Canvas2dFactory } from '../my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
+import { Settings } from '../my-nft-gen/src/core/Settings.js';
+import { EffectCategories } from '../my-nft-gen/src/core/registry/EffectCategories.js';
+import { register as registerPlugin } from '../plugin.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 

@@ -1,5 +1,5 @@
-import { FlowFieldEffect } from './src/effects/secondaryEffects/FlowField/FlowFieldEffect.js';
-import { FlowFieldConfig } from './src/effects/secondaryEffects/FlowField/FlowFieldConfig.js';
+import { FlowFieldEffect } from '../src/effects/secondaryEffects/FlowField/FlowFieldEffect.js';
+import { FlowFieldConfig } from '../src/effects/secondaryEffects/FlowField/FlowFieldConfig.js';
 
 console.log('🌊 FlowField Effect Test');
 console.log('========================');

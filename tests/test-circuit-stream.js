@@ -1,7 +1,7 @@
-import { CircuitStreamEffect } from './src/effects/primaryEffects/CircuitStream/CircuitStreamEffect.js';
-import { CircuitStreamConfig } from './src/effects/primaryEffects/CircuitStream/CircuitStreamConfig.js';
-import { Settings } from 'my-nft-gen/src/core/Settings.js';
-import { LayerFactory } from 'my-nft-gen/src/core/factory/layer/LayerFactory.js';
+import { CircuitStreamEffect } from '../src/effects/primaryEffects/CircuitStream/CircuitStreamEffect.js';
+import { CircuitStreamConfig } from '../src/effects/primaryEffects/CircuitStream/CircuitStreamConfig.js';
+import { Settings } from '../my-nft-gen/src/core/Settings.js';
+import { LayerFactory } from '../my-nft-gen/src/core/factory/layer/LayerFactory.js';
 
 async function testCircuitStream() {
     console.log('=== Testing CircuitStream Effect ===');

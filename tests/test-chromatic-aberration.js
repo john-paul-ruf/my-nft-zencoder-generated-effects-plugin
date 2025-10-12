@@ -1,5 +1,5 @@
-import { ChromaticAberrationEffect } from './src/effects/secondaryEffects/ChromaticAberration/ChromaticAberrationEffect.js';
-import { ChromaticAberrationConfig } from './src/effects/secondaryEffects/ChromaticAberration/ChromaticAberrationConfig.js';
+import { ChromaticAberrationEffect } from '../src/effects/secondaryEffects/ChromaticAberration/ChromaticAberrationEffect.js';
+import { ChromaticAberrationConfig } from '../src/effects/secondaryEffects/ChromaticAberration/ChromaticAberrationConfig.js';
 
 console.log('🌈 ChromaticAberration Effect Test');
 console.log('===================================');

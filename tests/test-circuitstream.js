@@ -1,9 +1,9 @@
-import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
-import { LayerFactory } from 'my-nft-gen/src/core/factory/layer/LayerFactory.js';
-import { Settings } from 'my-nft-gen/src/core/Settings.js';
-import { CircuitStreamEffect } from './src/effects/primaryEffects/CircuitStream/CircuitStreamEffect.js';
-import { CircuitStreamConfig } from './src/effects/primaryEffects/CircuitStream/CircuitStreamConfig.js';
-import { ColorPicker } from 'my-nft-gen/src/core/layer/configType/ColorPicker.js';
+import { Canvas2dFactory } from '../my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
+import { LayerFactory } from '../my-nft-gen/src/core/factory/layer/LayerFactory.js';
+import { Settings } from '../my-nft-gen/src/core/Settings.js';
+import { CircuitStreamEffect } from '../src/effects/primaryEffects/CircuitStream/CircuitStreamEffect.js';
+import { CircuitStreamConfig } from '../src/effects/primaryEffects/CircuitStream/CircuitStreamConfig.js';
+import { ColorPicker } from '../my-nft-gen/src/core/layer/configType/ColorPicker.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 

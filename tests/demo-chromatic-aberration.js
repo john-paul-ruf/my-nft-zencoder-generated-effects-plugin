@@ -1,4 +1,4 @@
-import { ChromaticAberrationConfig } from './src/effects/secondaryEffects/ChromaticAberration/ChromaticAberrationConfig.js';
+import { ChromaticAberrationConfig } from '../src/effects/secondaryEffects/ChromaticAberration/ChromaticAberrationConfig.js';
 
 console.log('🌈 ChromaticAberration Effect - Configuration Showcase');
 console.log('=====================================================\n');

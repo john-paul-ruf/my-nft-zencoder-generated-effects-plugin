@@ -88,6 +88,10 @@ export async function register(EffectRegistry, PositionRegistry) {
         console.log('📦 [Plugin] Importing SpectralOverwatch final effect...');
         const { SpectralOverwatchEffect, SpectralOverwatchConfig } = await import('./src/effects/keyframeEffects/SpectralOverwatch/index.js');
         
+        // Import TacticalPulseGrid KEYFRAME effect
+        console.log('📦 [Plugin] Importing TacticalPulseGrid keyframe effect...');
+        const { TacticalPulseGridEffect, TacticalPulseGridConfig } = await import('./src/effects/keyframeEffects/TacticalPulseGrid/index.js');
+        
         // Set the config class reference
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
@@ -106,6 +110,7 @@ export async function register(EffectRegistry, PositionRegistry) {
         PrismaticShatterEffect._configClass_ = PrismaticShatterConfig;
         HoloFoilEffect._configClass_ = HoloFoilConfig;
         SpectralOverwatchEffect._configClass_ = SpectralOverwatchConfig;
+        TacticalPulseGridEffect._configClass_ = TacticalPulseGridConfig;
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
@@ -362,6 +367,21 @@ export async function register(EffectRegistry, PositionRegistry) {
                 tags: SpectralOverwatchEffect._tags_ || ['effect', 'final', 'post', 'spectral', 'caustic', 'loop', 'animated']
             });
             console.log(`✅ Registered: ${SpectralOverwatchEffect._name_} as FINAL effect`);
+        }
+
+        // Register TacticalPulseGrid effect as FINAL (keyframe effect)
+        console.log(`📦 Effect name: ${TacticalPulseGridEffect._name_}`);
+        if (EffectRegistry.hasGlobal && EffectRegistry.hasGlobal(TacticalPulseGridEffect._name_)) {
+            console.log(`ℹ️ Effect '${TacticalPulseGridEffect._name_}' is already registered, skipping...`);
+        } else {
+            EffectRegistry.registerGlobal(TacticalPulseGridEffect, EffectCategories.FINAL_IMAGE, {
+                displayName: TacticalPulseGridEffect._displayName_ || 'Tactical Pulse Grid',
+                description: TacticalPulseGridEffect._description_ || 'Tactical HUD overlay with scanning pulses, targeting reticles, and digital interference.',
+                version: TacticalPulseGridEffect._version_ || '1.0.0',
+                author: TacticalPulseGridEffect._author_ || 'Zencoder',
+                tags: TacticalPulseGridEffect._tags_ || ['effect', 'keyframe', 'tactical', 'hud', 'pulse', 'grid', 'animated']
+            });
+            console.log(`✅ Registered: ${TacticalPulseGridEffect._name_} as FINAL effect`);
         }
 
         // Verify registration in the global registry
