@@ -95,7 +95,9 @@ export class VoidEchoEffect extends LayerEffect {
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    // Normalized time [0..1] for perfect loop
+    // Normalized time [0..1) for perfect loop
+    // CRITICAL: Must exclude 1.0 to avoid duplicate frame at loop point
+    // This ensures uniform transitions: frame N → frame 0 has same delta as any other transition
     const t = frameNumber / totalFrames;
 
     // Create output buffer - start with black
@@ -167,13 +169,23 @@ export class VoidEchoEffect extends LayerEffect {
    * Returns { offsetX, offsetY, rotation }
    */
   #calculateDisplacement(phase) {
-    // Perfect loop using sine/cosine
-    const angle = (phase * Math.PI * 2 * this.data.displacementSpeed) + this.data.displacementAngle;
+    // CRITICAL FIX: Quantize all animation cycles to integers for perfect loop
+    // Non-integer cycles create discontinuities at loop point
+    
+    // Quantize displacement speed to nearest integer cycle
+    const rawDisplacementCycles = this.data.displacementSpeed;
+    const perfectDisplacementCycles = Math.round(rawDisplacementCycles);
+    const angle = (phase * Math.PI * 2 * perfectDisplacementCycles) + this.data.displacementAngle;
+    
+    // Quantize rotation to nearest integer cycle
+    const rawRotationCycles = this.data.rotationSpeed;
+    const perfectRotationCycles = Math.round(rawRotationCycles);
+    const rotationAngle = phase * perfectRotationCycles * Math.PI * 2;
     
     return {
       offsetX: Math.sin(angle) * this.data.displacementRadius,
       offsetY: Math.cos(angle) * this.data.displacementRadius,
-      rotation: phase * this.data.rotationSpeed * Math.PI * 2
+      rotation: rotationAngle
     };
   }
 

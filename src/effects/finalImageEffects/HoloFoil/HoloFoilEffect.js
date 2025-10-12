@@ -17,6 +17,9 @@ export class HoloFoilEffect extends LayerEffect {
   static _author_ = 'Zencoder';
   static _tags_ = ['effect', 'final', 'post', 'holographic', 'foil', 'prismatic', 'animated'];
 
+  // High-precision constant for perfect loop calculations
+  static #TWO_PI = 6.28318530718;
+
   constructor({ name = HoloFoilEffect._name_, config, settings } = {}) {
     super({ name, config });
     this.#generate(settings);
@@ -139,7 +142,7 @@ export class HoloFoilEffect extends LayerEffect {
           const rx = gv.x * anim.rotCos - gv.y * anim.rotSin;
           const ry = gv.x * anim.rotSin + gv.y * anim.rotCos;
           // spatial phase; add ripple phase radially (rippleStrength controls amplitude)
-          const phase = (u * rx + v * ry) * (6.28318 * scale) + anim.ripplePhase * this.data.rippleStrength * Math.hypot(u, v);
+          const phase = (u * rx + v * ry) * (HoloFoilEffect.#TWO_PI * scale) + anim.ripplePhase * this.data.rippleStrength * Math.hypot(u, v);
           response += Math.cos(phase + anim.shimmerPhase);
         }
         response = response / this.data.gratingVectors.length; // [-1,1]
@@ -192,7 +195,7 @@ export class HoloFoilEffect extends LayerEffect {
 
   // Resolve time-based animation params for perfect loop
   #resolveAnimation(frameNumber, totalFrames) {
-    const twoPi = 6.28318530718;
+    const twoPi = HoloFoilEffect.#TWO_PI;
 
     // Perfect loop solution: For seamless looping in discrete frame systems,
     // we need each animation component to complete an INTEGER number of cycles
@@ -227,23 +230,34 @@ export class HoloFoilEffect extends LayerEffect {
     const rippleCycles = findPerfectCycles(rawRippleCycles);
 
     // Calculate phases directly from frame numbers to ensure perfect periodicity
-    // In a discrete frame system (0 to totalFrames-1), we want perfect loops where
-    // frame (totalFrames-1) produces visually identical results to frame 0.
-    // With integer cycles, the small difference from frameNumber/totalFrames is acceptable.
-    const t = frameNumber / totalFrames;
+    // For VIDEO LOOPS: Use totalFrames as denominator to create N unique frames
+    // where the transition from frame (N-1) → frame 0 is smooth and uniform.
+    //
+    // Example with 50 frames (0-49):
+    //   Frame 0:  phase = 2π × 1 × 0/50 = 0.000 rad
+    //   Frame 49: phase = 2π × 1 × 49/50 = 6.158 rad
+    //   Loop transition (49→0): 0.126 rad (7.20°) - same as all other transitions
+    //
+    // This ensures:
+    //   1. All 50 frames are UNIQUE (no duplicate at loop point)
+    //   2. All frame transitions are UNIFORM (7.20° per frame)
+    //   3. Smooth, seamless looping for video playback
+    //
+    // Note: Using (totalFrames - 1) would make frame 0 = frame 49, causing
+    // a duplicate frame stutter when the video loops.
     
-    const rotAngle = (twoPi * rotationCycles * t) % twoPi;
+    const rotAngle = (twoPi * rotationCycles * frameNumber / totalFrames) % twoPi;
     const rotCos = Math.cos(rotAngle);
     const rotSin = Math.sin(rotAngle);
 
-    const shimmerPhase = (twoPi * shimmerCycles * t) % twoPi;
-    const ripplePhase = (twoPi * rippleCycles * t) % twoPi;
+    const shimmerPhase = (twoPi * shimmerCycles * frameNumber / totalFrames) % twoPi;
+    const ripplePhase = (twoPi * rippleCycles * frameNumber / totalFrames) % twoPi;
 
     // pulse (global intensity) - Use frame-based calculation for consistency
     let pulseGain = 1.0;
     if (this.data.animationMode === 'pulse') {
       const pulseCycles = shimmerCycles || 1;
-      const pulsePhase = (twoPi * pulseCycles * t) % twoPi;
+      const pulsePhase = (twoPi * pulseCycles * frameNumber / totalFrames) % twoPi;
       pulseGain = 0.5 + 0.5 * Math.sin(pulsePhase);
       pulseGain = 0.7 + 0.6 * pulseGain; // keep >0
     }
@@ -251,7 +265,7 @@ export class HoloFoilEffect extends LayerEffect {
     // tilt modulation (just a smooth oscillation) - use frame-based calculation
     let tiltGain = 0.0;
     if (this.data.animationMode === 'tilt') {
-      const tiltPhase = (twoPi * t) % twoPi;
+      const tiltPhase = (twoPi * frameNumber / totalFrames) % twoPi;
       tiltGain = Math.sin(tiltPhase);
     }
 
