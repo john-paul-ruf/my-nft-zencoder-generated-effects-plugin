@@ -71,6 +71,30 @@ export class CircuitStreamConfig extends EffectConfig {
                     useOrthogonalTraces = true,
                     showBackgroundGrid = true,
 
+                    // PCB-Style Features
+                    usePCBStyle = true, // Enable realistic circuit board appearance
+                    showComponentPads = true, // Show circular/rectangular pads
+                    showVias = true, // Show via holes
+                    showICFootprints = true, // Show IC chip footprints
+                    useCurvedTraces = true, // Use smooth curves instead of sharp corners
+                    traceWidthVariation = 0.5, // 0-1: variation in trace widths
+                    padCount = 40, // Number of component pads
+                    viaCount = 30, // Number of via holes
+                    icCount = 5, // Number of IC chip footprints
+                    padRadiusMin = 4,
+                    padRadiusMax = 8,
+                    viaRadiusMin = 2,
+                    viaRadiusMax = 4,
+                    icSizeMin = 40,
+                    icSizeMax = 80,
+                    traceCurvature = 0.3, // 0-1: how curved the traces are
+
+                    // PCB Colors
+                    padColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+                    viaColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+                    icColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+                    solderMaskColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+
                     // Perfect Loop Configuration
                     perfectLoop = true,
 
@@ -147,6 +171,30 @@ export class CircuitStreamConfig extends EffectConfig {
         // Circuit Pattern Style
         this.useOrthogonalTraces = useOrthogonalTraces;
         this.showBackgroundGrid = showBackgroundGrid;
+
+        // PCB-Style Features
+        this.usePCBStyle = usePCBStyle;
+        this.showComponentPads = showComponentPads;
+        this.showVias = showVias;
+        this.showICFootprints = showICFootprints;
+        this.useCurvedTraces = useCurvedTraces;
+        this.traceWidthVariation = traceWidthVariation;
+        this.padCount = padCount;
+        this.viaCount = viaCount;
+        this.icCount = icCount;
+        this.padRadiusMin = padRadiusMin;
+        this.padRadiusMax = padRadiusMax;
+        this.viaRadiusMin = viaRadiusMin;
+        this.viaRadiusMax = viaRadiusMax;
+        this.icSizeMin = icSizeMin;
+        this.icSizeMax = icSizeMax;
+        this.traceCurvature = traceCurvature;
+
+        // PCB Colors
+        this.padColor = this.#ensureColorPicker(padColor);
+        this.viaColor = this.#ensureColorPicker(viaColor);
+        this.icColor = this.#ensureColorPicker(icColor);
+        this.solderMaskColor = this.#ensureColorPicker(solderMaskColor);
 
         // Perfect Loop Configuration
         this.perfectLoop = perfectLoop;

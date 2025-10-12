@@ -54,6 +54,15 @@ export class CircuitStreamEffect extends LayerEffect {
             layerOpacity: this.config.layerOpacity,
             layerBlendMode: this.config.layerBlendMode,
 
+            // PCB-Style Features
+            usePCBStyle: this.config.usePCBStyle,
+            showComponentPads: this.config.showComponentPads,
+            showVias: this.config.showVias,
+            showICFootprints: this.config.showICFootprints,
+            useCurvedTraces: this.config.useCurvedTraces,
+            traceWidthVariation: this.config.traceWidthVariation,
+            traceCurvature: this.config.traceCurvature,
+
             // Colors (direct from ColorPicker value)
             traceColor: this.config.traceColor?.getColor(settings) || '#FFFFFF',
             activeTraceColor: this.config.activeTraceColor?.getColor(settings) || '#FFFFFF',
@@ -62,6 +71,10 @@ export class CircuitStreamEffect extends LayerEffect {
             nodeCoreColor: this.config.nodeCoreColor?.getColor(settings) || '#FFFFFF',
             signalColor: this.config.signalColor?.getColor(settings)|| '#FFFFFF',
             backgroundGridColor: this.config.backgroundGridColor?.getColor(settings) || '#FFFFFF',
+            padColor: this.config.padColor?.getColor(settings) || '#FFFFFF',
+            viaColor: this.config.viaColor?.getColor(settings) || '#FFFFFF',
+            icColor: this.config.icColor?.getColor(settings) || '#FFFFFF',
+            solderMaskColor: this.config.solderMaskColor?.getColor(settings) || '#FFFFFF',
             
             // Generate circuit grid first (needed by other generators)
             grid: null, // Will be assigned below
@@ -78,6 +91,11 @@ export class CircuitStreamEffect extends LayerEffect {
             // Generate signal waves
             signalWaves: null, // Will be assigned below
             
+            // PCB Components
+            pads: null, // Component pads
+            vias: null, // Via holes
+            ics: null, // IC footprints
+            
             // Store random values for consistent animation
             glowIntensity: randomNumber(this.config.glowIntensityMin, this.config.glowIntensityMax),
             glowSpread: randomNumber(this.config.glowSpreadMin, this.config.glowSpreadMax),
@@ -86,6 +104,14 @@ export class CircuitStreamEffect extends LayerEffect {
         
         // Now generate components in order
         this.data.grid = this.#generateGrid(width, height);
+        
+        // Generate PCB components if enabled
+        if (this.config.usePCBStyle) {
+            this.data.pads = this.#generateComponentPads(width, height);
+            this.data.vias = this.#generateVias(width, height);
+            this.data.ics = this.#generateICFootprints(width, height);
+        }
+        
         this.data.traces = this.#generateTraces(width, height, this.data.grid);
         this.data.nodes = this.#generateNodes(width, height, this.data.grid);
         this.data.packets = this.#generateDataPackets(width, height, this.data.traces);
@@ -146,11 +172,24 @@ export class CircuitStreamEffect extends LayerEffect {
             // Generate path (orthogonal or direct)
             const path = this.#generateTracePath(startPoint, endPoint);
             
+            // Calculate trace width with variation for PCB style
+            let traceWidth = this.config.traceWidth;
+            if (this.config.usePCBStyle && this.config.traceWidthVariation > 0) {
+                // Some traces are power lines (thicker), others are signal lines (thinner)
+                const isPowerTrace = Math.random() < 0.2; // 20% are power traces
+                if (isPowerTrace) {
+                    traceWidth = this.config.traceWidth * (1 + this.config.traceWidthVariation);
+                } else {
+                    traceWidth = this.config.traceWidth * (1 - this.config.traceWidthVariation * 0.5);
+                }
+            }
+            
             traces.push({
                 id: randomId(),
                 startPoint,
                 endPoint,
                 path,
+                width: traceWidth,
                 opacity: randomNumber(this.config.traceOpacityMin, this.config.traceOpacityMax),
                 // ✅ FIXED: Normalize pulseOffset to 0-1 range for perfect loop calculations
                 pulseOffset: randomNumber(0, 1),
@@ -171,10 +210,34 @@ export class CircuitStreamEffect extends LayerEffect {
             // Create L-shaped path (horizontal then vertical or vice versa)
             if (Math.random() > 0.5) {
                 // Horizontal first
-                path.push({x: end.x, y: start.y});
+                if (this.config.useCurvedTraces && this.config.usePCBStyle) {
+                    // Add curved corner using control points
+                    const midX = end.x;
+                    const midY = start.y;
+                    const curvature = this.config.traceCurvature;
+                    const offset = Math.abs(end.x - start.x) * curvature;
+                    
+                    // Add intermediate points for smooth curve
+                    path.push({x: midX - offset, y: midY});
+                    path.push({x: midX, y: midY + offset});
+                } else {
+                    path.push({x: end.x, y: start.y});
+                }
             } else {
                 // Vertical first
-                path.push({x: start.x, y: end.y});
+                if (this.config.useCurvedTraces && this.config.usePCBStyle) {
+                    // Add curved corner using control points
+                    const midX = start.x;
+                    const midY = end.y;
+                    const curvature = this.config.traceCurvature;
+                    const offset = Math.abs(end.y - start.y) * curvature;
+                    
+                    // Add intermediate points for smooth curve
+                    path.push({x: midX, y: midY - offset});
+                    path.push({x: midX + offset, y: midY});
+                } else {
+                    path.push({x: start.x, y: end.y});
+                }
             }
         }
         
@@ -290,6 +353,73 @@ export class CircuitStreamEffect extends LayerEffect {
         return waves;
     }
 
+    #generateComponentPads(width, height) {
+        const pads = [];
+        const area = (width * height) / (1024 * 1024);
+        const scaleFactor = Math.sqrt(area);
+        const padCount = Math.max(10, Math.round(this.config.padCount * scaleFactor));
+        
+        for (let i = 0; i < padCount; i++) {
+            pads.push({
+                id: randomId(),
+                x: randomNumber(0, width),
+                y: randomNumber(0, height),
+                radius: randomNumber(this.config.padRadiusMin, this.config.padRadiusMax),
+                shape: getRandomFromArray(['circle', 'square', 'rounded-square']),
+                hasTrace: Math.random() > 0.3, // 70% chance of having a trace connection
+                pulseOffset: randomNumber(0, 1),
+            });
+        }
+        
+        return pads;
+    }
+
+    #generateVias(width, height) {
+        const vias = [];
+        const area = (width * height) / (1024 * 1024);
+        const scaleFactor = Math.sqrt(area);
+        const viaCount = Math.max(8, Math.round(this.config.viaCount * scaleFactor));
+        
+        for (let i = 0; i < viaCount; i++) {
+            vias.push({
+                id: randomId(),
+                x: randomNumber(0, width),
+                y: randomNumber(0, height),
+                radius: randomNumber(this.config.viaRadiusMin, this.config.viaRadiusMax),
+                innerRadius: randomNumber(this.config.viaRadiusMin * 0.4, this.config.viaRadiusMax * 0.6),
+            });
+        }
+        
+        return vias;
+    }
+
+    #generateICFootprints(width, height) {
+        const ics = [];
+        const area = (width * height) / (1024 * 1024);
+        const scaleFactor = Math.sqrt(area);
+        const icCount = Math.max(2, Math.round(this.config.icCount * scaleFactor));
+        
+        for (let i = 0; i < icCount; i++) {
+            const icWidth = randomNumber(this.config.icSizeMin, this.config.icSizeMax);
+            const icHeight = randomNumber(this.config.icSizeMin * 0.6, this.config.icSizeMax * 0.8);
+            const pinCount = Math.floor(randomNumber(8, 32) / 2) * 2; // Even number of pins
+            
+            ics.push({
+                id: randomId(),
+                x: randomNumber(icWidth / 2, width - icWidth / 2),
+                y: randomNumber(icHeight / 2, height - icHeight / 2),
+                width: icWidth,
+                height: icHeight,
+                pinCount: pinCount,
+                pinSize: randomNumber(2, 4),
+                rotation: getRandomFromArray([0, 90, 180, 270]),
+                type: getRandomFromArray(['DIP', 'QFP', 'SOIC']),
+            });
+        }
+        
+        return ics;
+    }
+
     async invoke(layer, currentFrame, numberOfFrames) {
         // ✅ SOLID: DIP - Draw circuit stream directly to layer
         await this.#drawCircuitStream(layer, currentFrame, numberOfFrames);
@@ -333,8 +463,26 @@ export class CircuitStreamEffect extends LayerEffect {
             await this.#drawBackgroundGridToCanvas(canvas, currentFrame, numberOfFrames);
         }
 
+        // Draw PCB components first (bottom layer)
+        if (this.data.usePCBStyle) {
+            // Draw IC footprints first (largest elements)
+            if (this.data.showICFootprints && this.data.ics) {
+                await this.#drawICFootprintsToCanvas(canvas, currentFrame, numberOfFrames);
+            }
+            
+            // Draw component pads
+            if (this.data.showComponentPads && this.data.pads) {
+                await this.#drawComponentPadsToCanvas(canvas, currentFrame, numberOfFrames);
+            }
+        }
+
         // Draw circuit traces
         await this.#drawTracesToCanvas(canvas, currentFrame, numberOfFrames);
+
+        // Draw vias on top of traces
+        if (this.data.usePCBStyle && this.data.showVias && this.data.vias) {
+            await this.#drawViasToCanvas(canvas, currentFrame, numberOfFrames);
+        }
 
         // Draw signal waves
         await this.#drawSignalWavesToCanvas(canvas, currentFrame, numberOfFrames);
@@ -394,7 +542,7 @@ export class CircuitStreamEffect extends LayerEffect {
     }
 
     async #drawTracesToCanvas(canvas, currentFrame, numberOfFrames) {
-        const {traces, traceColor, activeTraceColor, traceWidth, perfectLoop} = this.data;
+        const {traces, traceColor, activeTraceColor, perfectLoop} = this.data;
 
         for (const trace of traces) {
             // ✅ FIXED: Calculate pulse animation for active traces with perfect looping
@@ -418,6 +566,9 @@ export class CircuitStreamEffect extends LayerEffect {
             const color = trace.isActive ?
                 this.#blendColors(traceColor, activeTraceColor, pulseIntensity) :
                 traceColor;
+
+            // Use trace-specific width (varies for PCB style)
+            const traceWidth = trace.width || this.data.traceWidth;
 
             // Use drawPath with the entire trace path array (like QuantumField does)
             await canvas.drawPath(
@@ -565,6 +716,100 @@ export class CircuitStreamEffect extends LayerEffect {
         }
     }
 
+    // PCB Component Drawing Methods
+
+    async #drawComponentPadsToCanvas(canvas, currentFrame, numberOfFrames) {
+        const {pads, padColor, perfectLoop} = this.data;
+
+        for (const pad of pads) {
+            // Subtle pulse animation for pads
+            let pulseIntensity = 0;
+            if (pad.hasTrace) {
+                let progress;
+                if (perfectLoop) {
+                    const normalizedFrame = currentFrame / Math.max(1, numberOfFrames - 1);
+                    progress = (normalizedFrame + pad.pulseOffset) * Math.PI * 2;
+                } else {
+                    progress = ((currentFrame + pad.pulseOffset * numberOfFrames) / numberOfFrames) * Math.PI * 2;
+                }
+                pulseIntensity = (Math.sin(progress) + 1) / 2 * 0.3; // 0 to 0.3
+            }
+
+            const opacity = 0.7 + pulseIntensity;
+            const color = this.#applyOpacityToColor(padColor, opacity);
+
+            // Draw pad based on shape
+            if (pad.shape === 'circle') {
+                const padPath = this.#createCirclePath(pad.x, pad.y, pad.radius);
+                await canvas.drawPath(padPath, pad.radius * 1.5, color, 0, null);
+            } else if (pad.shape === 'square') {
+                const padPath = this.#createSquarePath(pad.x, pad.y, pad.radius);
+                await canvas.drawPath(padPath, 2, color, 0, null);
+            } else if (pad.shape === 'rounded-square') {
+                const padPath = this.#createRoundedSquarePath(pad.x, pad.y, pad.radius, pad.radius * 0.3);
+                await canvas.drawPath(padPath, 2, color, 0, null);
+            }
+        }
+    }
+
+    async #drawViasToCanvas(canvas, currentFrame, numberOfFrames) {
+        const {vias, viaColor} = this.data;
+
+        for (const via of vias) {
+            // Draw outer ring
+            const outerPath = this.#createCirclePath(via.x, via.y, via.radius);
+            await canvas.drawPath(outerPath, 1.5, viaColor, 0, null);
+
+            // Draw inner hole (darker)
+            const innerPath = this.#createCirclePath(via.x, via.y, via.innerRadius);
+            const darkerColor = this.#applyOpacityToColor(viaColor, 0.3);
+            await canvas.drawPath(innerPath, via.innerRadius, darkerColor, 0, null);
+        }
+    }
+
+    async #drawICFootprintsToCanvas(canvas, currentFrame, numberOfFrames) {
+        const {ics, icColor, perfectLoop} = this.data;
+
+        for (const ic of ics) {
+            // Draw IC body
+            const bodyPath = this.#createRoundedSquarePath(ic.x, ic.y, ic.width / 2, ic.height / 2, 3);
+            const bodyColor = this.#applyOpacityToColor(icColor, 0.4);
+            await canvas.drawPath(bodyPath, 2, bodyColor, 0, null);
+
+            // Draw pins based on IC type
+            const pinsPerSide = ic.pinCount / 2;
+            const pinSpacing = (ic.type === 'DIP' ? ic.height : ic.width) / (pinsPerSide + 1);
+
+            for (let i = 0; i < pinsPerSide; i++) {
+                // Left side pins
+                const leftY = ic.y - ic.height / 2 + pinSpacing * (i + 1);
+                const leftPinPath = this.#createSquarePath(
+                    ic.x - ic.width / 2 - ic.pinSize,
+                    leftY,
+                    ic.pinSize
+                );
+                await canvas.drawPath(leftPinPath, 1, icColor, 0, null);
+
+                // Right side pins
+                const rightY = ic.y - ic.height / 2 + pinSpacing * (i + 1);
+                const rightPinPath = this.#createSquarePath(
+                    ic.x + ic.width / 2 + ic.pinSize,
+                    rightY,
+                    ic.pinSize
+                );
+                await canvas.drawPath(rightPinPath, 1, icColor, 0, null);
+            }
+
+            // Draw pin 1 indicator (small circle)
+            const pin1Path = this.#createCirclePath(
+                ic.x - ic.width / 2 + 5,
+                ic.y - ic.height / 2 + 5,
+                2
+            );
+            await canvas.drawPath(pin1Path, 2, icColor, 0, null);
+        }
+    }
+
     // Keep utility methods only
 
     #createCirclePath(centerX, centerY, radius) {
@@ -588,6 +833,36 @@ export class CircuitStreamEffect extends LayerEffect {
             {x: centerX - size, y: centerY + size},
             {x: centerX - size, y: centerY - size}, // Close the path
         ];
+    }
+
+    #createRoundedSquarePath(centerX, centerY, halfWidth, halfHeight, cornerRadius = 3) {
+        const path = [];
+        const x1 = centerX - halfWidth;
+        const x2 = centerX + halfWidth;
+        const y1 = centerY - halfHeight;
+        const y2 = centerY + halfHeight;
+        const r = Math.min(cornerRadius, halfWidth * 0.3, halfHeight * 0.3);
+
+        // Start from top-left corner, going clockwise
+        // Top edge
+        path.push({x: x1 + r, y: y1});
+        path.push({x: x2 - r, y: y1});
+        // Top-right corner
+        path.push({x: x2, y: y1 + r});
+        // Right edge
+        path.push({x: x2, y: y2 - r});
+        // Bottom-right corner
+        path.push({x: x2 - r, y: y2});
+        // Bottom edge
+        path.push({x: x1 + r, y: y2});
+        // Bottom-left corner
+        path.push({x: x1, y: y2 - r});
+        // Left edge
+        path.push({x: x1, y: y1 + r});
+        // Close path
+        path.push({x: x1 + r, y: y1});
+
+        return path;
     }
 
     #getPositionOnPath(path, progress, direction) {

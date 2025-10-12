@@ -336,6 +336,11 @@ export class SpectralOverwatchEffect extends LayerEffect {
 
 // Utils (local)
 function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+function wrapDeg(d){
+  let n = Number.isFinite(d) ? d : 0;
+  n = n % 360;
+  return n < 0 ? n + 360 : n;
+}
 function lerp(a,b,t){ return a + (b - a) * t; }
 function smoothstep(e0,e1,x){
   const t = clamp01((x - e0) / (e1 - e0));
