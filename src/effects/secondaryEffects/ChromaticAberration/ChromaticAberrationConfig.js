@@ -1,4 +1,5 @@
 import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
+import { ColorPicker } from 'my-nft-gen/src/core/layer/configType/ColorPicker.js';
 
 /**
  * ChromaticAberration Configuration
@@ -33,9 +34,9 @@ export class ChromaticAberrationConfig extends EffectConfig {
     preserveAlpha = true,                // Maintain original transparency
     
     // Color Tinting - Optional color enhancement
-    redTint = '#FF0000',                 // Red channel tint color
-    greenTint = '#00FF00',               // Green channel tint color
-    blueTint = '#0000FF',                // Blue channel tint color
+    redTint = new ColorPicker(ColorPicker.SelectionType.colorBucket),     // Red channel tint color
+    greenTint = new ColorPicker(ColorPicker.SelectionType.colorBucket),   // Green channel tint color
+    blueTint = new ColorPicker(ColorPicker.SelectionType.colorBucket),    // Blue channel tint color
     tintStrength = 0.0,                  // Tint intensity (0-1, 0=no tint)
     
     // Wave Mode Parameters - For wave animation

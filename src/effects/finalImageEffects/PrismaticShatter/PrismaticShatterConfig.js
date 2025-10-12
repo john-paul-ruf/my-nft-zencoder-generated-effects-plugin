@@ -1,4 +1,5 @@
 import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
+import { ColorPicker } from "../../../../../my-nft-gen/src/core/layer/configType/ColorPicker.js";
 
 /**
  * PrismaticShatter Configuration
@@ -39,11 +40,11 @@ export class PrismaticShatterConfig extends EffectConfig {
     rayFalloff = 0.7,                   // Ray opacity decay (0.3-1.0)
     
     // Colors - All configurable spectrum colors
-    primarySpectrumColor = '#ff0000',   // Red spectrum start
-    secondarySpectrumColor = '#0000ff', // Blue spectrum end
-    glowColor = '#ffffff',              // Edge glow color
-    fogColor = '#9932cc',               // Atmospheric fog tint
-    flareColor = '#ffff00',             // Lens flare color
+    primarySpectrumColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),   // Red spectrum start
+    secondarySpectrumColor = new ColorPicker(ColorPicker.SelectionType.colorBucket), // Blue spectrum end
+    glowColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),              // Edge glow color
+    fogColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),               // Atmospheric fog tint
+    flareColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),             // Lens flare color
     
     // Atmospheric Effects - Post-processing
     bloomIntensity = 0.6,               // Edge bloom strength (0.0-1.0)

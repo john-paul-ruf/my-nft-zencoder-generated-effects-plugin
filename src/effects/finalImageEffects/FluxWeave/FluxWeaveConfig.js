@@ -1,4 +1,5 @@
 import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
+import { ColorPicker } from "../../../../../my-nft-gen/src/core/layer/configType/ColorPicker.js";
 
 /**
  * FluxWeave Configuration
@@ -31,7 +32,7 @@ export class FluxWeaveConfig extends EffectConfig {
     // Color Parameters
     phaseShiftStrength = 20,
     hueRotation = 0,
-    tintColor = '#ffffff',
+    tintColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
     tintStrength = 0.2,
     
     // Animation Parameters
@@ -68,7 +69,7 @@ export class FluxWeaveConfig extends EffectConfig {
     // Validate and store color parameters
     this.phaseShiftStrength = this.#clamp(phaseShiftStrength, 0, 100);
     this.hueRotation = this.#clamp(hueRotation, 0, 360);
-    this.tintColor = this.#validateHexColor(tintColor);
+    this.tintColor = tintColor;
     this.tintStrength = this.#clamp(tintStrength, 0, 1);
     
     // Validate and store animation parameters
@@ -124,13 +125,5 @@ export class FluxWeaveConfig extends EffectConfig {
    */
   #clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
-  }
-
-  /**
-   * Validate hex color format
-   */
-  #validateHexColor(color) {
-    const hexRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-    return hexRegex.test(color) ? color : '#ffffff';
   }
 }

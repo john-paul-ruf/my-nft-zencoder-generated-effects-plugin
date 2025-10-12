@@ -3,48 +3,64 @@ import {ColorPicker} from 'my-nft-gen/src/core/layer/configType/ColorPicker.js';
 
 // Flat, serializable config for Aurora Kaleidoscope Flow
 export class AuroraKaleidoConfig extends EffectConfig {
-    constructor(cfg = {}) {
-        super();
-        this.seed = cfg.seed ?? Math.floor(Math.random() * 1e9);
-        this.segments = cfg.segments ?? 8; // [3..24]
-        this.symmetryReflection = cfg.symmetryReflection ?? true;
-        this.ribbonCount = cfg.ribbonCount ?? 18; // [3..64]
-        this.ribbonWidth = cfg.ribbonWidth ?? 6;
-        this.ribbonWidthJitter = cfg.ribbonWidthJitter ?? 0.4; // 0..1
-        this.freqX = cfg.freqX ?? 3; // integer for perfect loop
-        this.freqY = cfg.freqY ?? 2; // integer for perfect loop
-        this.phaseOffset = cfg.phaseOffset ?? 0;
-        this.swirlSpeed = cfg.swirlSpeed ?? 1.0; // integer for perfect loop
-        this.swirlAmplitude = cfg.swirlAmplitude ?? 0.35;
-        this.morphSpeed = cfg.morphSpeed ?? 1.0; // integer for perfect loop
-        this.morphDepth = cfg.morphDepth ?? 0.4; // 0..1
-        this.ribbonTrail = cfg.ribbonTrail ?? 48; // subdivisions per ribbon
-        this.renderMode = cfg.renderMode ?? 'ribbons'; // 'ribbons' | 'streaks' | 'points'
-        this.samplingResolution = cfg.samplingResolution ?? 96;
-        this.opacity = cfg.opacity ?? 1.0;
-        this.lineWidth = cfg.lineWidth ?? 1.5;
+    constructor({
+        seed = Math.floor(Math.random() * 1e9),
+        segments = 8, // [3..24]
+        symmetryReflection = true,
+        ribbonCount = 18, // [3..64]
+        ribbonWidth = 6,
+        ribbonWidthJitter = 0.4, // 0..1
+        freqX = 3, // integer for perfect loop
+        freqY = 2, // integer for perfect loop
+        phaseOffset = 0,
+        swirlSpeed = 1.0, // integer for perfect loop
+        swirlAmplitude = 0.35,
+        morphSpeed = 1.0, // integer for perfect loop
+        morphDepth = 0.4, // 0..1
+        ribbonTrail = 48, // subdivisions per ribbon
+        renderMode = 'ribbons', // 'ribbons' | 'streaks' | 'points'
+        samplingResolution = 96,
+        opacity = 1.0,
+        lineWidth = 1.5,
 
         // Colors are configured via ColorPicker to match repo patterns
-        this.colorA = this.#ensureColorPicker(cfg.colorA ?? new ColorPicker(ColorPicker.SelectionType.color, '#33d1ff'));
-        this.colorB = this.#ensureColorPicker(cfg.colorB ?? new ColorPicker(ColorPicker.SelectionType.color, '#9b5bff'));
-        this.colorC = this.#ensureColorPicker(cfg.colorC ?? new ColorPicker(ColorPicker.SelectionType.color, '#ff5ea0'));
+        colorA = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+        colorB = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+        colorC = new ColorPicker(ColorPicker.SelectionType.colorBucket),
 
-        this.colorMode = cfg.colorMode ?? 'angle'; // 'angle' | 'radius' | 'time'
-        this.blendMode = cfg.blendMode ?? 'screen';
-        this.layerOpacity = cfg.layerOpacity ?? 1.0;
-        this.perfectLoop = cfg.perfectLoop ?? true;
-    }
+        colorMode = 'angle', // 'angle' | 'radius' | 'time'
+        blendMode = 'screen',
+        layerOpacity = 1.0,
+        perfectLoop = true
+    } = {}) {
+        super();
+        
+        this.seed = seed;
+        this.segments = segments;
+        this.symmetryReflection = symmetryReflection;
+        this.ribbonCount = ribbonCount;
+        this.ribbonWidth = ribbonWidth;
+        this.ribbonWidthJitter = ribbonWidthJitter;
+        this.freqX = freqX;
+        this.freqY = freqY;
+        this.phaseOffset = phaseOffset;
+        this.swirlSpeed = swirlSpeed;
+        this.swirlAmplitude = swirlAmplitude;
+        this.morphSpeed = morphSpeed;
+        this.morphDepth = morphDepth;
+        this.ribbonTrail = ribbonTrail;
+        this.renderMode = renderMode;
+        this.samplingResolution = samplingResolution;
+        this.opacity = opacity;
+        this.lineWidth = lineWidth;
 
-    #ensureColorPicker(colorParam) {
-        if (colorParam instanceof ColorPicker) return colorParam;
-        if (typeof colorParam === 'object' && colorParam !== null) {
-            const selectionType = colorParam.selectionType || ColorPicker.SelectionType.color;
-            const value = colorParam.value || colorParam.color || '#FFFFFF';
-            return new ColorPicker(selectionType, value);
-        }
-        if (typeof colorParam === 'string') {
-            return new ColorPicker(ColorPicker.SelectionType.color, colorParam);
-        }
-        return new ColorPicker(ColorPicker.SelectionType.color, '#FFFFFF');
+        this.colorA = colorA;
+        this.colorB = colorB;
+        this.colorC = colorC;
+
+        this.colorMode = colorMode;
+        this.blendMode = blendMode;
+        this.layerOpacity = layerOpacity;
+        this.perfectLoop = perfectLoop;
     }
 }

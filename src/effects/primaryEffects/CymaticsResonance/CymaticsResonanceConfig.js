@@ -52,7 +52,7 @@ export class CymaticsResonanceConfig extends EffectConfig {
                     nodeColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
                     nodeCoreColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
                     rippleColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
-                    gridColor = new ColorPicker(ColorPicker.SelectionType.color, '#1a1a3a'),
+                    gridColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),
 
                     // Animation
                     perfectLoop = true,
@@ -127,15 +127,15 @@ export class CymaticsResonanceConfig extends EffectConfig {
             return colorParam;
         } else if (typeof colorParam === 'object' && colorParam !== null) {
             // Reconstruct ColorPicker from plain object (deserialized data)
-            const selectionType = colorParam.selectionType || ColorPicker.SelectionType.color;
-            const value = colorParam.value || colorParam.color || '#FFFFFF';
+            const selectionType = colorParam.selectionType || ColorPicker.SelectionType.colorBucket;
+            const value = colorParam.value || colorParam.color || null;
             return new ColorPicker(selectionType, value);
         } else if (typeof colorParam === 'string') {
             // If it's just a string color, create a static ColorPicker
-            return new ColorPicker(ColorPicker.SelectionType.color, colorParam);
+            return new ColorPicker(ColorPicker.SelectionType.colorBucket);
         } else {
             // Default fallback
-            return new ColorPicker(ColorPicker.SelectionType.color, '#FFFFFF');
+            return new ColorPicker(ColorPicker.SelectionType.colorBucket);
         }
     }
 }

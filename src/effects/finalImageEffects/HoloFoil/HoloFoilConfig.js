@@ -1,4 +1,5 @@
 import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
+import { ColorPicker } from 'my-nft-gen/src/core/layer/configType/ColorPicker.js';
 
 /**
  * HoloFoil Configuration (Final Image Effect)
@@ -36,9 +37,9 @@ export class HoloFoilConfig extends EffectConfig {
 
     // Color mode
     colorMode = 'prismatic',      // 'prismatic' | 'tinted' | 'mono'
-    tintRed = '#FFFFFF',
-    tintGreen = '#FFFFFF',
-    tintBlue = '#FFFFFF',
+    tintRed = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+    tintGreen = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+    tintBlue = new ColorPicker(ColorPicker.SelectionType.colorBucket),
 
     // Surface shaping
     highlightBoost = 0.35,   // 0..1 boosts highlights from source luminance
@@ -85,9 +86,9 @@ export class HoloFoilConfig extends EffectConfig {
 
     // Color mode
     this.colorMode = ['prismatic', 'tinted', 'mono'].includes(colorMode) ? colorMode : 'prismatic';
-    this.tintRed = String(tintRed || '#FFFFFF');
-    this.tintGreen = String(tintGreen || '#FFFFFF');
-    this.tintBlue = String(tintBlue || '#FFFFFF');
+    this.tintRed = tintRed;
+    this.tintGreen = tintGreen;
+    this.tintBlue = tintBlue;
 
     // Surface
     this.highlightBoost = clamp01(highlightBoost);

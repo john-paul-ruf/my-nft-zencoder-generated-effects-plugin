@@ -166,15 +166,15 @@ export class CircuitStreamConfig extends EffectConfig {
         } else if (typeof colorParam === 'object' && colorParam !== null) {
             // Reconstruct ColorPicker from plain object (deserialized data)
             // Assume it has selectionType and value properties
-            const selectionType = colorParam.selectionType || ColorPicker.SelectionType.color;
-            const value = colorParam.value || colorParam.color || '#FFFFFF';
+            const selectionType = colorParam.selectionType || ColorPicker.SelectionType.colorBucket;
+            const value = colorParam.value || colorParam.color || null;
             return new ColorPicker(selectionType, value);
         } else if (typeof colorParam === 'string') {
             // If it's just a string color, create a static ColorPicker
-            return new ColorPicker(ColorPicker.SelectionType.color, colorParam);
+            return new ColorPicker(ColorPicker.SelectionType.colorBucket);
         } else {
             // Default fallback
-            return new ColorPicker(ColorPicker.SelectionType.color, '#FFFFFF');
+            return new ColorPicker(ColorPicker.SelectionType.colorBucket);
         }
     }
 }

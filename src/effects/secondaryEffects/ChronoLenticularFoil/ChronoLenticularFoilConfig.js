@@ -1,4 +1,5 @@
 import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
+import { ColorPicker } from 'my-nft-gen/src/core/layer/configType/ColorPicker.js';
 
 // Flat, serializable config for ChronoLenticularFoil
 export class ChronoLenticularFoilConfig extends EffectConfig {
@@ -17,9 +18,9 @@ export class ChronoLenticularFoilConfig extends EffectConfig {
     displacementPx = 2.2,
     edgeBoost = 1.4,
     mode = 'overlay', // 'overlay' | 'screen' | 'add'
-    colorBase = '#9ad2ff',
-    colorHighlight = '#fff2b6',
-    colorShadow = '#2a2a40',
+    colorBase = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+    colorHighlight = new ColorPicker(ColorPicker.SelectionType.colorBucket),
+    colorShadow = new ColorPicker(ColorPicker.SelectionType.colorBucket),
     gamma = 1.0,
     quality = 'medium', // 'low' | 'medium' | 'high'
     layerOpacity = 1.0,

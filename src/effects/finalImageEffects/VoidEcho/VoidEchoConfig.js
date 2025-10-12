@@ -1,4 +1,5 @@
 import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
+import { ColorPicker } from "../../../../../my-nft-gen/src/core/layer/configType/ColorPicker.js";
 
 /**
  * VoidEcho Configuration
@@ -29,9 +30,9 @@ export class VoidEchoConfig extends EffectConfig {
     feedbackStrength = 0.6,           // How much echo affects next (0.0-1.0)
     
     // Colors - Tinting and vignette
-    tintColor = '#00ffff',            // Primary tint color (hex)
+    tintColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),            // Primary tint color
     tintStrength = 0.3,               // Tint intensity (0.0-1.0)
-    vignetteColor = '#000000',        // Vignette edge color (hex)
+    vignetteColor = new ColorPicker(ColorPicker.SelectionType.colorBucket),        // Vignette edge color
     vignetteStrength = 0.4,           // Vignette intensity (0.0-1.0)
     
     // Animation - Temporal effects
