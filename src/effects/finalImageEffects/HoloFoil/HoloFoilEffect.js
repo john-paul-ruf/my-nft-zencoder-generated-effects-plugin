@@ -103,7 +103,10 @@ export class HoloFoilEffect extends LayerEffect {
     const dst = globalBufferPool.getBuffer(width, height, 4);
     dst.fill(0);
 
-    const t = totalFrames > 0 ? frameNumber / totalFrames : 0; // 0..1
+    // Perfect loop: normalize frameNumber to [0, 1) range
+    // When frameNumber = 0, t = 0
+    // When frameNumber = totalFrames - 1, t approaches 1 but wraps to 0 on next frame
+    const t = totalFrames > 1 ? (frameNumber % totalFrames) / totalFrames : 0;
 
     // Precompute time-based animation parameters
     const anim = this.#resolveAnimation(t);
