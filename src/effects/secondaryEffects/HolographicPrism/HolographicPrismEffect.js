@@ -3,7 +3,6 @@ import { findValue } from 'my-nft-gen';
 import { getRandomFromArray, randomNumber } from 'my-nft-gen/src/core/math/random.js';
 import sharp from 'sharp';
 import { globalBufferPool } from 'my-nft-gen/src/core/pool/BufferPool.js';
-import { LayerFactory } from 'my-nft-gen/src/core/factory/layer/LayerFactory.js';
 import { HolographicPrismConfig } from './HolographicPrismConfig.js';
 
 export class HolographicPrismEffect extends LayerEffect {
@@ -315,7 +314,7 @@ export class HolographicPrismEffect extends LayerEffect {
       }
     );
 
-    // Convert processed pixels back to a layer
+    // Convert processed pixels back to PNG buffer
     const processedBuffer = await sharp(outputPixels, {
       raw: {
         width,
@@ -327,14 +326,14 @@ export class HolographicPrismEffect extends LayerEffect {
       .toBuffer();
 
     // Release buffers back to pool
-    globalBufferPool.releaseBuffer(workingPixels);
-    globalBufferPool.releaseBuffer(outputPixels);
+    globalBufferPool.returnBuffer(workingPixels, width, height, 4);
+    globalBufferPool.returnBuffer(outputPixels, width, height, 4);
 
-    // Create and return new layer
-    return LayerFactory.createFromBuffer(processedBuffer, {
-      opacity: this.data.layerOpacity,
-      blendMode: this.data.layerBlendMode
-    });
+    // Update layer with processed buffer
+    await layer.fromBuffer(processedBuffer);
+    await layer.adjustLayerOpacity(this.data.layerOpacity);
+    
+    return layer;
   }
 
   /**
