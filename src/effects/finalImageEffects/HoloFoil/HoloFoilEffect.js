@@ -103,13 +103,9 @@ export class HoloFoilEffect extends LayerEffect {
     const dst = globalBufferPool.getBuffer(width, height, 4);
     dst.fill(0);
 
-    // Perfect loop: normalize frameNumber to [0, 1) range
-    // When frameNumber = 0, t = 0
-    // When frameNumber = totalFrames - 1, t approaches 1 but wraps to 0 on next frame
-    const t = totalFrames > 1 ? (frameNumber % totalFrames) / totalFrames : 0;
-
-    // Precompute time-based animation parameters
-    const anim = this.#resolveAnimation(t);
+    // Perfect loop: pass frameNumber and totalFrames directly to resolveAnimation
+    // This allows for more precise control over the animation timing
+    const anim = this.#resolveAnimation(frameNumber, totalFrames);
 
     const cx = width * 0.5;
     const cy = height * 0.5;
@@ -195,35 +191,68 @@ export class HoloFoilEffect extends LayerEffect {
   }
 
   // Resolve time-based animation params for perfect loop
-  #resolveAnimation(t) {
+  #resolveAnimation(frameNumber, totalFrames) {
     const twoPi = 6.28318530718;
 
-    // rotation - FIXED: Round to nearest integer, minimum 1 cycle if speed > 0
-    const rotationCycles = this.data.rotationSpeed > 0 ? Math.max(1, Math.round(this.data.rotationSpeed)) : 0;
-    const rotAngle = twoPi * rotationCycles * t;
+    // Perfect loop solution: For seamless looping in discrete frame systems,
+    // we need each animation component to complete an INTEGER number of cycles
+    // over the total frame count. This ensures frame 0 and frame totalFrames
+    // produce identical results.
+    
+    const rawRotationCycles = this.data.rotationSpeed || 0;
+    const rawShimmerCycles = this.data.shimmerSpeed || 0;
+    const rawRippleCycles = (this.data.rippleFrequency || 0) * (this.data.rippleSpeed || 0);
+
+    // Convert to integer cycles for perfect looping
+    function findPerfectCycles(originalCycles) {
+      if (originalCycles === 0) return 0;
+      
+      // Find the closest integer that preserves the visual intent
+      const candidates = [];
+      const baseInt = Math.floor(originalCycles);
+      
+      for (let n = Math.max(0, baseInt - 1); n <= baseInt + 2; n++) {
+        if (n === 0 && originalCycles > 0) continue; // Don't use 0 if original was > 0
+        const diff = Math.abs(n - originalCycles);
+        candidates.push({ cycles: n, diff });
+      }
+      
+      // Sort by difference and return the closest
+      candidates.sort((a, b) => a.diff - b.diff);
+      return candidates[0].cycles;
+    }
+
+    const rotationCycles = findPerfectCycles(rawRotationCycles);
+    const shimmerCycles = findPerfectCycles(rawShimmerCycles);
+    const rippleCycles = findPerfectCycles(rawRippleCycles);
+
+    // Calculate phases directly from frame numbers to ensure perfect periodicity
+    // In a discrete frame system (0 to totalFrames-1), we want perfect loops where
+    // frame (totalFrames-1) produces visually identical results to frame 0.
+    // With integer cycles, the small difference from frameNumber/totalFrames is acceptable.
+    const t = frameNumber / totalFrames;
+    
+    const rotAngle = (twoPi * rotationCycles * t) % twoPi;
     const rotCos = Math.cos(rotAngle);
     const rotSin = Math.sin(rotAngle);
 
-    // shimmer - FIXED: Round to nearest integer, minimum 1 cycle if speed > 0
-    const shimmerCycles = this.data.shimmerSpeed > 0 ? Math.max(1, Math.round(this.data.shimmerSpeed)) : 0;
-    const shimmerPhase = twoPi * shimmerCycles * t;
+    const shimmerPhase = (twoPi * shimmerCycles * t) % twoPi;
+    const ripplePhase = (twoPi * rippleCycles * t) % twoPi;
 
-    // ripple (radial phase) - FIXED: Round product to nearest integer, minimum 1 cycle if product > 0
-    const rippleProduct = this.data.rippleFrequency * this.data.rippleSpeed;
-    const rippleCycles = rippleProduct > 0 ? Math.max(1, Math.round(rippleProduct)) : 0;
-    const ripplePhase = twoPi * rippleCycles * t;
-
-    // pulse (global intensity) - FIXED: Use rounded shimmer cycles
+    // pulse (global intensity) - Use frame-based calculation for consistency
     let pulseGain = 1.0;
     if (this.data.animationMode === 'pulse') {
-      pulseGain = 0.5 + 0.5 * Math.sin(twoPi * t * Math.max(1, shimmerCycles));
+      const pulseCycles = shimmerCycles || 1;
+      const pulsePhase = (twoPi * pulseCycles * t) % twoPi;
+      pulseGain = 0.5 + 0.5 * Math.sin(pulsePhase);
       pulseGain = 0.7 + 0.6 * pulseGain; // keep >0
     }
 
-    // tilt modulation (just a smooth oscillation) - already perfect (1 cycle)
+    // tilt modulation (just a smooth oscillation) - use frame-based calculation
     let tiltGain = 0.0;
     if (this.data.animationMode === 'tilt') {
-      tiltGain = Math.sin(twoPi * t);
+      const tiltPhase = (twoPi * t) % twoPi;
+      tiltGain = Math.sin(tiltPhase);
     }
 
     return { rotCos, rotSin, shimmerPhase, ripplePhase, pulseGain, tiltGain };
