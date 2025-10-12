@@ -68,13 +68,13 @@ export class CymaticsResonanceEffect extends LayerEffect {
             layerOpacity: this.config.layerOpacity,
             layerBlendMode: this.config.layerBlendMode,
             
-            // Colors (resolved from ColorPicker)
-            primaryWaveColor: this.#getColorFromPicker(this.config.primaryWaveColor, settings),
-            secondaryWaveColor: this.#getColorFromPicker(this.config.secondaryWaveColor, settings),
-            nodeColor: this.#getColorFromPicker(this.config.nodeColor, settings),
-            nodeCoreColor: this.#getColorFromPicker(this.config.nodeCoreColor, settings),
-            rippleColor: this.#getColorFromPicker(this.config.rippleColor, settings),
-            gridColor: this.#getColorFromPicker(this.config.gridColor, settings),
+            // Colors (direct from ColorPicker value)
+            primaryWaveColor: this.config.primaryWaveColor?.getColor(settings) || '#FFFFFF',
+            secondaryWaveColor: this.config.secondaryWaveColor?.getColor(settings) || '#FFFFFF',
+            nodeColor: this.config.nodeColor?.getColor(settings) || '#FFFFFF',
+            nodeCoreColor: this.config.nodeCoreColor?.getColor(settings) || '#FFFFFF',
+            rippleColor: this.config.rippleColor?.getColor(settings)|| '#FFFFFF',
+            gridColor: this.config.gridColor?.getColor(settings) || '#FFFFFF',
             
             // Pre-generated random values for consistent animation
             glowIntensity: randomNumber(this.config.glowIntensityMin, this.config.glowIntensityMax),
@@ -580,33 +580,6 @@ export class CymaticsResonanceEffect extends LayerEffect {
             });
         }
         return path;
-    }
-
-    /**
-     * Helper method to get color from ColorPicker
-     * Handles both static colors and dynamic color bucket selection
-     */
-    #getColorFromPicker(colorPicker, settings) {
-        if (!colorPicker) {
-            return '#FFFFFF';
-        }
-        
-        // If it's already a string (shouldn't happen but defensive)
-        if (typeof colorPicker === 'string') {
-            return colorPicker;
-        }
-        
-        // Use the ColorPicker's getColor method if available
-        if (typeof colorPicker.getColor === 'function') {
-            const color = colorPicker.getColor(settings);
-            // Ensure we got a valid color back
-            if (color && typeof color === 'string') {
-                return color;
-            }
-        }
-        
-        // Fallback to value property
-        return colorPicker.value || colorPicker.color || '#FFFFFF';
     }
 }
 

@@ -13,14 +13,14 @@ export class AuroraKaleidoEffect extends LayerEffect {
     static _tags_ = ['effect', 'primary', 'aurora', 'kaleido', 'ribbons', 'animated'];
 
     constructor({
-        name = AuroraKaleidoEffect._name_,
-        requiresLayer = true,
-        config = new AuroraKaleidoConfig({}),
-        additionalEffects = [],
-        ignoreAdditionalEffects = false,
-        settings = new Settings({}),
-    } = {}) {
-        super({ name, requiresLayer, config, additionalEffects, ignoreAdditionalEffects, settings });
+                    name = AuroraKaleidoEffect._name_,
+                    requiresLayer = true,
+                    config = new AuroraKaleidoConfig({}),
+                    additionalEffects = [],
+                    ignoreAdditionalEffects = false,
+                    settings = new Settings({}),
+                } = {}) {
+        super({name, requiresLayer, config, additionalEffects, ignoreAdditionalEffects, settings});
         this.#generate(settings);
     }
 
@@ -33,7 +33,7 @@ export class AuroraKaleidoEffect extends LayerEffect {
         let s = seed >>> 0;
         const rnd = () => ((s = (1664525 * s + 1013904223) >>> 0) / 0xffffffff);
 
-        const ribbons = Array.from({ length: this.config.ribbonCount }, () => ({
+        const ribbons = Array.from({length: this.config.ribbonCount}, () => ({
             phase: rnd(),                // 0..1, phase offset along loop
             widthFactor: 1 - this.config.ribbonWidthJitter * rnd(),
             colorBias: rnd(),
@@ -57,10 +57,10 @@ export class AuroraKaleidoEffect extends LayerEffect {
             opacity: +this.config.opacity,
             lineWidth: +this.config.lineWidth,
 
-            // Resolve colors from ColorPicker using repo pattern
-            colorA: this.#getColorFromPicker(this.config.colorA, settings),
-            colorB: this.#getColorFromPicker(this.config.colorB, settings),
-            colorC: this.#getColorFromPicker(this.config.colorC, settings),
+            // Colors (direct from ColorPicker value)
+            colorA: this.config.colorA.getColor(settings) || '#FFFFFF',
+            colorB: this.config.colorB?.getColor(settings) || '#FFFFFF',
+            colorC: this.config.colorC.getColor(settings) || '#FFFFFF',
 
             colorMode: this.config.colorMode,
             blendMode: this.config.blendMode,
@@ -98,7 +98,6 @@ export class AuroraKaleidoEffect extends LayerEffect {
     }
 
 
-
     async #renderAurora(canvas, currentFrame, numberOfFrames) {
         const d = this.data;
         const p = (currentFrame % numberOfFrames) / numberOfFrames; // perfect loop phase 0..1
@@ -121,10 +120,10 @@ export class AuroraKaleidoEffect extends LayerEffect {
                 const sy = lx * snSw + ly * csSw;
                 const cx = (0.5 + sx * rad) * d.width;
                 const cy = (0.5 + sy * rad) * d.height;
-                trail.push({ x: cx, y: cy, t });
+                trail.push({x: cx, y: cy, t});
             }
 
-            const colorFor = ({ x, y, t }) => {
+            const colorFor = ({x, y, t}) => {
                 if (d.colorMode === 'time') return this.#mix3(d.colorA, d.colorB, d.colorC, t);
                 if (d.colorMode === 'radius') {
                     const dx = x / d.width - 0.5, dy = y / d.height - 0.5;
@@ -149,7 +148,7 @@ export class AuroraKaleidoEffect extends LayerEffect {
                 await this.#drawTrail(canvas, segTrail, widthPx, colorFor);
 
                 if (d.symmetryReflection) {
-                    const mirrorTrail = segTrail.map(pt => ({ x: d.width - pt.x, y: pt.y, t: pt.t }));
+                    const mirrorTrail = segTrail.map(pt => ({x: d.width - pt.x, y: pt.y, t: pt.t}));
                     await this.#drawTrail(canvas, mirrorTrail, widthPx, colorFor);
                 }
             }
@@ -161,21 +160,30 @@ export class AuroraKaleidoEffect extends LayerEffect {
         if (d.renderMode === 'points') {
             for (const pt of points) {
                 // approximate filled circle by small stroke path
-                await canvas.drawLine2d({x: pt.x, y: pt.y}, {x: pt.x + 0.01, y: pt.y + 0.01}, widthPx, colorFor(pt), 0, null, d.opacity);
+                const color = colorFor(pt);
+                const colorWithOpacity = this.#adjustColorOpacity(color, d.opacity);
+                await canvas.drawLine2d({x: pt.x, y: pt.y}, {
+                    x: pt.x + 0.01,
+                    y: pt.y + 0.01
+                }, widthPx, colorWithOpacity, 0, null, 1.0);
             }
             return;
         }
         if (d.renderMode === 'streaks') {
             for (let k = 1; k < points.length; k++) {
                 const a = points[k - 1], b = points[k];
-                await canvas.drawLine2d(a, b, d.lineWidth, colorFor(b), 0, null, d.opacity);
+                const color = colorFor(b);
+                const colorWithOpacity = this.#adjustColorOpacity(color, d.opacity);
+                await canvas.drawLine2d(a, b, d.lineWidth, colorWithOpacity, 0, null, 1.0);
             }
             return;
         }
         // ribbons: thick lines composing a ribbon-like trail
         for (let k = 1; k < points.length; k++) {
             const a = points[k - 1], b = points[k];
-            await canvas.drawLine2d(a, b, widthPx, colorFor(b), 0, null, d.opacity);
+            const color = colorFor(b);
+            const colorWithOpacity = this.#adjustColorOpacity(color, d.opacity);
+            await canvas.drawLine2d(a, b, widthPx, colorWithOpacity, 0, null, 1.0);
         }
     }
 
@@ -195,13 +203,56 @@ export class AuroraKaleidoEffect extends LayerEffect {
         return t < 0.5 ? lerpHex(a, b, t * 2) : lerpHex(b, c, (t - 0.5) * 2);
     }
 
-    #getColorFromPicker(colorPicker, settings) {
-        if (!colorPicker) return '#FFFFFF';
-        if (typeof colorPicker.getColor === 'function') {
-            return colorPicker.getColor(settings) || '#FFFFFF';
+    /**
+     * Adjust color opacity by modifying the alpha channel
+     * @param {string} color - Color in hex format (e.g., "#FF0000")
+     * @param {number} opacity - Opacity value between 0 and 1
+     * @returns {string} Color with adjusted opacity
+     */
+    #adjustColorOpacity(color, opacity) {
+        // Handle hex colors
+        if (color.startsWith('#')) {
+            const hex = color.slice(1);
+            let r, g, b;
+            
+            if (hex.length === 3) {
+                r = parseInt(hex[0] + hex[0], 16);
+                g = parseInt(hex[1] + hex[1], 16);
+                b = parseInt(hex[2] + hex[2], 16);
+            } else if (hex.length === 6) {
+                r = parseInt(hex.slice(0, 2), 16);
+                g = parseInt(hex.slice(2, 4), 16);
+                b = parseInt(hex.slice(4, 6), 16);
+            } else {
+                return color; // Return original if format is unexpected
+            }
+            
+            // Clamp opacity between 0 and 1
+            const alpha = Math.max(0, Math.min(1, opacity));
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         }
-        if (typeof colorPicker === 'string') return colorPicker;
-        if (typeof colorPicker === 'object' && colorPicker?.value) return colorPicker.value;
-        return '#FFFFFF';
+        
+        // Handle rgba colors
+        if (color.startsWith('rgba(')) {
+            const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)/);
+            if (match) {
+                const [, r, g, b] = match;
+                const alpha = Math.max(0, Math.min(1, opacity));
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+        }
+        
+        // Handle rgb colors
+        if (color.startsWith('rgb(')) {
+            const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (match) {
+                const [, r, g, b] = match;
+                const alpha = Math.max(0, Math.min(1, opacity));
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+        }
+        
+        // Return original color if format is not recognized
+        return color;
     }
 }

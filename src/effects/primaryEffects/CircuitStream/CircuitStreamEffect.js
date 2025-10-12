@@ -54,14 +54,14 @@ export class CircuitStreamEffect extends LayerEffect {
             layerOpacity: this.config.layerOpacity,
             layerBlendMode: this.config.layerBlendMode,
 
-            // Colors (resolved from ColorPicker)
-            traceColor: this.#getColorFromPicker(this.config.traceColor, settings),
-            activeTraceColor: this.#getColorFromPicker(this.config.activeTraceColor, settings),
-            dataPacketColor: this.#getColorFromPicker(this.config.dataPacketColor, settings),
-            nodeColor: this.#getColorFromPicker(this.config.nodeColor, settings),
-            nodeCoreColor: this.#getColorFromPicker(this.config.nodeCoreColor, settings),
-            signalColor: this.#getColorFromPicker(this.config.signalColor, settings),
-            backgroundGridColor: this.#getColorFromPicker(this.config.backgroundGridColor, settings),
+            // Colors (direct from ColorPicker value)
+            traceColor: this.config.traceColor?.getColor(settings) || '#FFFFFF',
+            activeTraceColor: this.config.activeTraceColor?.getColor(settings) || '#FFFFFF',
+            dataPacketColor: this.config.dataPacketColor?.getColor(ettings) || '#FFFFFF',
+            nodeColor: this.config.nodeColor?.getColor(settings) || '#FFFFFF',
+            nodeCoreColor: this.config.nodeCoreColor?.getColor(settings) || '#FFFFFF',
+            signalColor: this.config.signalColor?.getColor(settings)|| '#FFFFFF',
+            backgroundGridColor: this.config.backgroundGridColor?.getColor(settings) || '#FFFFFF',
             
             // Generate circuit grid first (needed by other generators)
             grid: null, // Will be assigned below
@@ -558,23 +558,6 @@ export class CircuitStreamEffect extends LayerEffect {
 
     // Keep utility methods only
 
-    #getColorFromPicker(colorPicker, settings) {
-        if (!colorPicker) return '#00FF00'; // Default fallback
-
-        // Check if it's a ColorPicker instance with getColor method
-        if (typeof colorPicker.getColor === 'function') {
-            const color = colorPicker.getColor(settings);
-            return color || '#00FF00';
-        }
-
-        // If it's already a string color
-        if (typeof colorPicker === 'string') {
-            return colorPicker;
-        }
-
-        return '#00FF00'; // Default fallback
-    }
-
     #createCirclePath(centerX, centerY, radius) {
         const path = [];
         const steps = 32; // Smooth circle
@@ -661,10 +644,61 @@ export class CircuitStreamEffect extends LayerEffect {
     }
 
     #applyOpacityToColor(hexColor, opacity) {
-        // Convert opacity (0-1) to hex (00-FF)
-        const opacityHex = Math.round(opacity * 255).toString(16).padStart(2, '0');
-        // Append opacity to hex color (supports #RRGGBB format)
-        return hexColor + opacityHex;
+        // Delegate to the proper color opacity adjustment method
+        return this.#adjustColorOpacity(hexColor, opacity);
+    }
+
+    /**
+     * Adjust color opacity by modifying the alpha channel
+     * @param {string} color - Color in hex format (e.g., "#FF0000")
+     * @param {number} opacity - Opacity value between 0 and 1
+     * @returns {string} Color with adjusted opacity
+     */
+    #adjustColorOpacity(color, opacity) {
+        // Handle hex colors
+        if (color.startsWith('#')) {
+            const hex = color.slice(1);
+            let r, g, b;
+            
+            if (hex.length === 3) {
+                r = parseInt(hex[0] + hex[0], 16);
+                g = parseInt(hex[1] + hex[1], 16);
+                b = parseInt(hex[2] + hex[2], 16);
+            } else if (hex.length === 6) {
+                r = parseInt(hex.slice(0, 2), 16);
+                g = parseInt(hex.slice(2, 4), 16);
+                b = parseInt(hex.slice(4, 6), 16);
+            } else {
+                return color; // Return original if format is unexpected
+            }
+            
+            // Clamp opacity between 0 and 1
+            const alpha = Math.max(0, Math.min(1, opacity));
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        
+        // Handle rgba colors
+        if (color.startsWith('rgba(')) {
+            const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)/);
+            if (match) {
+                const [, r, g, b] = match;
+                const alpha = Math.max(0, Math.min(1, opacity));
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+        }
+        
+        // Handle rgb colors
+        if (color.startsWith('rgb(')) {
+            const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (match) {
+                const [, r, g, b] = match;
+                const alpha = Math.max(0, Math.min(1, opacity));
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+        }
+        
+        // Return original color if format is not recognized
+        return color;
     }
 }
 

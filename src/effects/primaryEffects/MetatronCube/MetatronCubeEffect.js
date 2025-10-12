@@ -53,13 +53,13 @@ export class MetatronCubeEffect extends LayerEffect {
             layerOpacity: this.config.layerOpacity,
             layerBlendMode: this.config.layerBlendMode,
 
-            // Colors (resolved from ColorPicker)
-            primaryColor: this.#getColorFromPicker(this.config.primaryColor, settings),
-            secondaryColor: this.#getColorFromPicker(this.config.secondaryColor, settings),
-            tertiaryColor: this.#getColorFromPicker(this.config.tertiaryColor, settings),
-            runeColor: this.#getColorFromPicker(this.config.runeColor, settings),
-            particleColor: this.#getColorFromPicker(this.config.particleColor, settings),
-            glowColor: this.#getColorFromPicker(this.config.glowColor, settings),
+            // Colors (direct from ColorPicker value)
+            primaryColor: this.config.primaryColor.getColor(settings),
+            secondaryColor: this.config.secondaryColor.getColor(settings),
+            tertiaryColor: this.config.tertiaryColor.getColor(settings),
+            runeColor: this.config.runeColor.getColor(settings),
+            particleColor: this.config.particleColor.getColor(settings),
+            glowColor: this.config.glowColor.getColor(settings),
             
             // Visual effects
             glowIntensity: randomNumber(this.config.glowIntensityMin, this.config.glowIntensityMax),
@@ -565,21 +565,6 @@ export class MetatronCubeEffect extends LayerEffect {
     }
 
     /**
-     * Helper to get color from ColorPicker
-     */
-    #getColorFromPicker(colorPicker, settings) {
-        if (!colorPicker) return '#FFFFFF';
-        
-        try {
-            const color = colorPicker.getColor(settings);
-            return color || '#FFFFFF';
-        } catch (error) {
-            console.warn('Failed to get color from picker:', error);
-            return '#FFFFFF';
-        }
-    }
-
-    /**
      * Blend two hex colors
      */
     #blendColors(color1, color2, ratio) {
@@ -688,15 +673,16 @@ export class MetatronCubeEffect extends LayerEffect {
             if (opacity < 0.01) continue;
             
             const scaledRadius = circle.radius * breathingScale;
+            const colorWithOpacity = this.#adjustColorOpacity(this.data.secondaryColor, opacity);
             
             await canvas.drawRing2d(
                 {x: circle.x, y: circle.y},
                 scaledRadius,
                 1, // innerStroke
-                this.data.secondaryColor,
+                colorWithOpacity,
                 this.data.glowIntensity * 0.5, // outerStroke (glow)
-                this.data.secondaryColor,
-                opacity
+                colorWithOpacity,
+                1.0 // opacity already applied to color
             );
         }
     }
@@ -744,15 +730,16 @@ export class MetatronCubeEffect extends LayerEffect {
             const color = this.#blendColors(this.data.primaryColor, this.data.tertiaryColor, intensity);
             const opacity = 0.3 + intensity * pulseIntensity;
             const glowMultiplier = 1.0 + intensity * pulseIntensity * 1.5;
+            const colorWithOpacity = this.#adjustColorOpacity(color, opacity);
             
             await canvas.drawLine2d(
                 startPos,
                 endPos,
                 this.data.lineWidth, // innerStroke
-                color,
+                colorWithOpacity,
                 this.data.glowIntensity * glowMultiplier, // outerStroke (glow)
-                color,
-                opacity
+                colorWithOpacity,
+                1.0 // opacity already applied to color
             );
         }
         
@@ -767,15 +754,16 @@ export class MetatronCubeEffect extends LayerEffect {
             const pulseProgress = (animProgress * sphere.pulseFrequency + sphere.phaseOffset) % (Math.PI * 2);
             const pulseScale = 1.0 + Math.sin(pulseProgress) * 0.2;
             const glowScale = 1.0 + Math.sin(pulseProgress) * 0.5;
+            const sphereColorWithOpacity = this.#adjustColorOpacity(this.data.primaryColor, 0.8);
             
             await canvas.drawRing2d(
                 spherePos,
                 sphere.radius * pulseScale,
                 2, // innerStroke
-                this.data.primaryColor,
+                sphereColorWithOpacity,
                 sphere.glowRadius * glowScale, // outerStroke (glow)
-                this.data.primaryColor,
-                0.8 // opacity
+                sphereColorWithOpacity,
+                1.0 // opacity already applied to color
             );
         }
     }
@@ -808,14 +796,16 @@ export class MetatronCubeEffect extends LayerEffect {
                 
                 if (opacity < 0.01) continue;
                 
+                const edgeColorWithOpacity = this.#adjustColorOpacity(this.data.secondaryColor, opacity);
+                
                 await canvas.drawLine2d(
                     {x: v1.x, y: v1.y},
                     {x: v2.x, y: v2.y},
                     this.data.solidWireframeWidth, // innerStroke
-                    this.data.secondaryColor,
+                    edgeColorWithOpacity,
                     solid.edgeGlow * avgScale, // outerStroke (glow)
-                    this.data.secondaryColor,
-                    opacity
+                    edgeColorWithOpacity,
+                    1.0 // opacity already applied to color
                 );
             }
             
@@ -832,6 +822,7 @@ export class MetatronCubeEffect extends LayerEffect {
                     
                     // Draw filled polygon for face
                     const points = faceVertices.map(v => ({x: v.x, y: v.y}));
+                    const faceColorWithOpacity = this.#adjustColorOpacity(this.data.tertiaryColor, faceOpacity);
                     
                     // Draw as a series of triangles from first vertex (simple fan triangulation)
                     for (let i = 1; i < points.length - 1; i++) {
@@ -839,28 +830,28 @@ export class MetatronCubeEffect extends LayerEffect {
                             points[0],
                             points[i],
                             0, // no stroke
-                            this.data.tertiaryColor,
+                            faceColorWithOpacity,
                             0, // no glow
-                            this.data.tertiaryColor,
-                            faceOpacity
+                            faceColorWithOpacity,
+                            1.0 // opacity already applied to color
                         );
                         await canvas.drawLine2d(
                             points[i],
                             points[i + 1],
                             0,
-                            this.data.tertiaryColor,
+                            faceColorWithOpacity,
                             0,
-                            this.data.tertiaryColor,
-                            faceOpacity
+                            faceColorWithOpacity,
+                            1.0 // opacity already applied to color
                         );
                         await canvas.drawLine2d(
                             points[i + 1],
                             points[0],
                             0,
-                            this.data.tertiaryColor,
+                            faceColorWithOpacity,
                             0,
-                            this.data.tertiaryColor,
-                            faceOpacity
+                            faceColorWithOpacity,
+                            1.0 // opacity already applied to color
                         );
                     }
                 }
@@ -919,16 +910,17 @@ export class MetatronCubeEffect extends LayerEffect {
             const sizeProgress = (animProgress * 2 + pulse.phaseOffset) % (Math.PI * 2);
             const sizePulse = 1.0 + Math.sin(sizeProgress) * 0.3;
             const glowPulse = 1.0 + Math.sin(sizeProgress) * 0.5;
+            const pulseColorWithOpacity = this.#adjustColorOpacity(this.data.tertiaryColor, 0.8);
             
             // Draw pulse as a glowing circle with enhanced effects
             await canvas.drawRing2d(
                 pulsePos,
                 pulse.width * sizePulse,
                 0, // no inner stroke (filled circle)
-                this.data.tertiaryColor,
+                pulseColorWithOpacity,
                 this.data.glowIntensity * 1.5 * glowPulse, // outerStroke (glow)
-                this.data.tertiaryColor,
-                0.8 // opacity
+                pulseColorWithOpacity,
+                1.0 // opacity already applied to color
             );
         }
     }
@@ -989,28 +981,30 @@ export class MetatronCubeEffect extends LayerEffect {
                     // Fade trail based on distance from particle
                     const trailOpacity = 0.6 * (1 - i / this.data.particleTrailLength);
                     const trailSize = particle.size * (1 - i / (this.data.particleTrailLength * 2));
+                    const trailColorWithOpacity = this.#adjustColorOpacity(this.data.particleColor, trailOpacity);
                     
                     await canvas.drawRing2d(
                         {x: trailX, y: trailY},
                         trailSize,
                         0, // no inner stroke (filled circle)
-                        this.data.particleColor,
+                        trailColorWithOpacity,
                         particle.glow * 0.5, // reduced glow for trail
-                        this.data.particleColor,
-                        trailOpacity
+                        trailColorWithOpacity,
+                        1.0 // opacity already applied to color
                     );
                 }
             }
             
             // Draw main particle
+            const particleColorWithOpacity = this.#adjustColorOpacity(this.data.particleColor, 0.9);
             await canvas.drawRing2d(
                 {x, y},
                 particle.size,
                 0, // no inner stroke (filled circle)
-                this.data.particleColor,
+                particleColorWithOpacity,
                 particle.glow, // outerStroke (glow)
-                this.data.particleColor,
-                0.9 // opacity
+                particleColorWithOpacity,
+                1.0 // opacity already applied to color
             );
         }
     }
@@ -1030,6 +1024,9 @@ export class MetatronCubeEffect extends LayerEffect {
             const opacity = rune.opacity * (0.7 + Math.sin(progress + rune.phaseOffset) * 0.3);
             if (opacity < 0.01) continue;
             
+            const runeColorWithOpacity = this.#adjustColorOpacity(this.data.runeColor, opacity);
+            const glowColorWithOpacity = this.#adjustColorOpacity(this.data.glowColor, opacity);
+            
             // Try to draw text if available, otherwise fallback to geometric shape
             if (typeof canvas.drawText === 'function') {
                 await canvas.drawText(
@@ -1038,12 +1035,12 @@ export class MetatronCubeEffect extends LayerEffect {
                     y,                       // y coordinate
                     {
                         fontSize: rune.size,
-                        color: this.data.runeColor,
-                        alpha: opacity,
+                        color: runeColorWithOpacity,
+                        alpha: 1.0, // opacity already applied to color
                         textAnchor: 'middle',
                         dominantBaseline: 'middle',
                         strokeWidth: this.data.glowIntensity * 0.8,
-                        strokeColor: this.data.glowColor,
+                        strokeColor: glowColorWithOpacity,
                         fontFamily: 'Arial, sans-serif',
                         fontWeight: 'bold'
                     }
@@ -1056,10 +1053,10 @@ export class MetatronCubeEffect extends LayerEffect {
                     4,                       // numberOfSides (diamond)
                     angle + Math.PI / 4,     // startAngle (rotated 45 degrees + rune rotation)
                     1,                       // innerStroke
-                    this.data.runeColor,     // innerColor
+                    runeColorWithOpacity,     // innerColor
                     this.data.glowIntensity * 0.8, // outerStroke (glow)
-                    this.data.runeColor,     // outerColor
-                    opacity                  // alpha
+                    runeColorWithOpacity,     // outerColor
+                    1.0                  // opacity already applied to color
                 );
             }
         }
@@ -1080,6 +1077,9 @@ export class MetatronCubeEffect extends LayerEffect {
             const opacity = glyph.opacity * (0.8 + Math.sin(progress + glyph.phaseOffset) * 0.2);
             if (opacity < 0.01) continue;
             
+            const glyphColorWithOpacity = this.#adjustColorOpacity(this.data.runeColor, opacity);
+            const glyphGlowColorWithOpacity = this.#adjustColorOpacity(this.data.glowColor, opacity);
+            
             // Try to draw text if available, otherwise fallback to geometric shape
             if (typeof canvas.drawText === 'function') {
                 await canvas.drawText(
@@ -1088,12 +1088,12 @@ export class MetatronCubeEffect extends LayerEffect {
                     y,                       // y coordinate
                     {
                         fontSize: glyph.size,
-                        color: this.data.runeColor,
-                        alpha: opacity,
+                        color: glyphColorWithOpacity,
+                        alpha: 1.0, // opacity already applied to color
                         textAnchor: 'middle',
                         dominantBaseline: 'middle',
                         strokeWidth: this.data.glowIntensity,
-                        strokeColor: this.data.glowColor,
+                        strokeColor: glyphGlowColorWithOpacity,
                         fontFamily: 'Arial, sans-serif',
                         fontWeight: 'bold'
                     }
@@ -1106,10 +1106,10 @@ export class MetatronCubeEffect extends LayerEffect {
                     3,                       // numberOfSides (triangle)
                     angle,                   // startAngle (rotates with glyph)
                     1,                       // innerStroke
-                    this.data.runeColor,     // innerColor
+                    glyphColorWithOpacity,     // innerColor
                     this.data.glowIntensity, // outerStroke (glow)
-                    this.data.runeColor,     // outerColor
-                    opacity                  // alpha
+                    glyphColorWithOpacity,     // outerColor
+                    1.0                  // opacity already applied to color
                 );
             }
         }
@@ -1133,17 +1133,72 @@ export class MetatronCubeEffect extends LayerEffect {
                 const opacity = layer.opacity * (0.8 + Math.sin(progress + petal.phaseOffset) * 0.2);
                 if (opacity < 0.01) continue;
                 
+                const petalColorWithOpacity = this.#adjustColorOpacity(this.data.primaryColor, opacity);
+                
                 // Draw petal as a small glowing circle
                 await canvas.drawRing2d(
                     {x, y},                          // position
                     petal.size,                      // radius
                     1,                               // innerStroke
-                    this.data.primaryColor,          // innerColor
+                    petalColorWithOpacity,          // innerColor
                     this.data.glowIntensity * 0.6,   // outerStroke (glow)
-                    this.data.primaryColor,          // outerColor
-                    opacity                          // alpha
+                    petalColorWithOpacity,          // outerColor
+                    1.0                          // opacity already applied to color
                 );
             }
         }
+    }
+
+    /**
+     * Adjust color opacity by modifying the alpha channel
+     * @param {string} color - Color in hex format (e.g., "#FF0000")
+     * @param {number} opacity - Opacity value between 0 and 1
+     * @returns {string} Color with adjusted opacity
+     */
+    #adjustColorOpacity(color, opacity) {
+        // Handle hex colors
+        if (color.startsWith('#')) {
+            const hex = color.slice(1);
+            let r, g, b;
+            
+            if (hex.length === 3) {
+                r = parseInt(hex[0] + hex[0], 16);
+                g = parseInt(hex[1] + hex[1], 16);
+                b = parseInt(hex[2] + hex[2], 16);
+            } else if (hex.length === 6) {
+                r = parseInt(hex.slice(0, 2), 16);
+                g = parseInt(hex.slice(2, 4), 16);
+                b = parseInt(hex.slice(4, 6), 16);
+            } else {
+                return color; // Return original if format is unexpected
+            }
+            
+            // Clamp opacity between 0 and 1
+            const alpha = Math.max(0, Math.min(1, opacity));
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        
+        // Handle rgba colors
+        if (color.startsWith('rgba(')) {
+            const match = color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([0-9.]+)\)/);
+            if (match) {
+                const [, r, g, b] = match;
+                const alpha = Math.max(0, Math.min(1, opacity));
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+        }
+        
+        // Handle rgb colors
+        if (color.startsWith('rgb(')) {
+            const match = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (match) {
+                const [, r, g, b] = match;
+                const alpha = Math.max(0, Math.min(1, opacity));
+                return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            }
+        }
+        
+        // Return original color if format is not recognized
+        return color;
     }
 }
