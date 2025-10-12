@@ -469,12 +469,10 @@ export class CircuitStreamEffect extends LayerEffect {
             // ✅ FIXED: Calculate charge/discharge cycle with perfect looping
             let progress;
             if (perfectLoop) {
-                // Perfect loop: normalize to animation duration
+                // Perfect loop: normalize to 0-1 range, use blinkFrequency for cycles
                 const normalizedFrame = (currentFrame % numberOfFrames) / numberOfFrames;
-                const cycleDuration = node.chargeTime + node.dischargeTime;
-                // Scale cycle to fit within animation duration
-                const cyclesPerAnimation = numberOfFrames / cycleDuration;
-                progress = (normalizedFrame * cyclesPerAnimation + node.pulseOffset) * Math.PI * 2;
+                // blinkFrequency determines how many complete cycles per animation loop
+                progress = (normalizedFrame * node.blinkFrequency + node.pulseOffset) * Math.PI * 2;
             } else {
                 // Original behavior
                 const cycleDuration = node.chargeTime + node.dischargeTime;

@@ -157,6 +157,7 @@ export class OrbitBloomEffect extends LayerEffect {
     };
 
     const maxR = Math.hypot(cx, cy);
+    const twoPi = Math.PI * 2;
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -166,8 +167,9 @@ export class OrbitBloomEffect extends LayerEffect {
         const r = Math.hypot(dx, dy) / maxR; // [0..1]
         const theta = Math.atan2(dy, dx);
 
-        // Ripple phase: angular cycles + radial cycles, time-wrapped for loop
-        const phi = theta * frequency + r * radialCycles * Math.PI * 2 + t * Math.PI * 2;
+        // Ripple phase: angular frequency + radial frequency, time phase for perfect loop
+        // radialCycles affects spatial frequency, not the time-based loop phase
+        const phi = theta * frequency + r * radialCycles * twoPi + t * twoPi;
         const off = Math.sin(phi) * amplitude;
 
         const sx = x + Math.cos(theta) * off;
@@ -251,7 +253,11 @@ export class OrbitBloomEffect extends LayerEffect {
       return ((h ^ (h >>> 13)) * 1274126177) >>> 0;
     };
 
-    const phase = Math.floor(t * cycles * 1024) % 1024; // discrete looping phase
+    // Discrete looping phase: cycles determines how many grain cycles per animation loop
+    // Use modulo on the total range to ensure perfect wrap at t=1
+    const numSteps = 1024;
+    const totalSteps = numSteps * cycles;
+    const phase = Math.floor(t * totalSteps) % totalSteps;
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {

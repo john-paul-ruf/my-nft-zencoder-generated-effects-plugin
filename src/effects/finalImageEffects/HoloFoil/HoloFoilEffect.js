@@ -139,8 +139,8 @@ export class HoloFoilEffect extends LayerEffect {
           // rotate grating basis by animation (rotate mode)
           const rx = gv.x * anim.rotCos - gv.y * anim.rotSin;
           const ry = gv.x * anim.rotSin + gv.y * anim.rotCos;
-          // spatial phase; add ripple phase radially
-          const phase = (u * rx + v * ry) * (6.28318 * scale) + anim.ripplePhase * Math.hypot(u, v);
+          // spatial phase; add ripple phase radially (rippleStrength controls amplitude)
+          const phase = (u * rx + v * ry) * (6.28318 * scale) + anim.ripplePhase * this.data.rippleStrength * Math.hypot(u, v);
           response += Math.cos(phase + anim.shimmerPhase);
         }
         response = response / this.data.gratingVectors.length; // [-1,1]
@@ -195,25 +195,29 @@ export class HoloFoilEffect extends LayerEffect {
   #resolveAnimation(t) {
     const twoPi = 6.28318530718;
 
-    // rotation
-    const rotAngle = twoPi * this.data.rotationSpeed * t;
+    // rotation - FIXED: Round to nearest integer, minimum 1 cycle if speed > 0
+    const rotationCycles = this.data.rotationSpeed > 0 ? Math.max(1, Math.round(this.data.rotationSpeed)) : 0;
+    const rotAngle = twoPi * rotationCycles * t;
     const rotCos = Math.cos(rotAngle);
     const rotSin = Math.sin(rotAngle);
 
-    // shimmer
-    const shimmerPhase = twoPi * this.data.shimmerSpeed * t;
+    // shimmer - FIXED: Round to nearest integer, minimum 1 cycle if speed > 0
+    const shimmerCycles = this.data.shimmerSpeed > 0 ? Math.max(1, Math.round(this.data.shimmerSpeed)) : 0;
+    const shimmerPhase = twoPi * shimmerCycles * t;
 
-    // ripple (radial phase)
-    const ripplePhase = twoPi * this.data.rippleFrequency * this.data.rippleSpeed * t * this.data.rippleStrength;
+    // ripple (radial phase) - FIXED: Round product to nearest integer, minimum 1 cycle if product > 0
+    const rippleProduct = this.data.rippleFrequency * this.data.rippleSpeed;
+    const rippleCycles = rippleProduct > 0 ? Math.max(1, Math.round(rippleProduct)) : 0;
+    const ripplePhase = twoPi * rippleCycles * t;
 
-    // pulse (global intensity)
+    // pulse (global intensity) - FIXED: Use rounded shimmer cycles
     let pulseGain = 1.0;
     if (this.data.animationMode === 'pulse') {
-      pulseGain = 0.5 + 0.5 * Math.sin(twoPi * t * Math.max(0.0001, this.data.shimmerSpeed));
+      pulseGain = 0.5 + 0.5 * Math.sin(twoPi * t * Math.max(1, shimmerCycles));
       pulseGain = 0.7 + 0.6 * pulseGain; // keep >0
     }
 
-    // tilt modulation (just a smooth oscillation)
+    // tilt modulation (just a smooth oscillation) - already perfect (1 cycle)
     let tiltGain = 0.0;
     if (this.data.animationMode === 'tilt') {
       tiltGain = Math.sin(twoPi * t);
