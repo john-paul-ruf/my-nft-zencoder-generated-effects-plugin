@@ -57,7 +57,7 @@ export class CircuitStreamEffect extends LayerEffect {
             // Colors (direct from ColorPicker value)
             traceColor: this.config.traceColor?.getColor(settings) || '#FFFFFF',
             activeTraceColor: this.config.activeTraceColor?.getColor(settings) || '#FFFFFF',
-            dataPacketColor: this.config.dataPacketColor?.getColor(ettings) || '#FFFFFF',
+            dataPacketColor: this.config.dataPacketColor?.getColor(settings) || '#FFFFFF',
             nodeColor: this.config.nodeColor?.getColor(settings) || '#FFFFFF',
             nodeCoreColor: this.config.nodeCoreColor?.getColor(settings) || '#FFFFFF',
             signalColor: this.config.signalColor?.getColor(settings)|| '#FFFFFF',
