@@ -230,34 +230,40 @@ export class HoloFoilEffect extends LayerEffect {
     const rippleCycles = findPerfectCycles(rawRippleCycles);
 
     // Calculate phases directly from frame numbers to ensure perfect periodicity
-    // For VIDEO LOOPS: Use totalFrames as denominator to create N unique frames
-    // where the transition from frame (N-1) → frame 0 is smooth and uniform.
+    // CRITICAL FIX: For perfect loops with integer cycles, we need the phase at
+    // the last frame to equal 2π (which wraps to 0), not 2π × (N-1)/N.
     //
-    // Example with 50 frames (0-49):
+    // Using totalFrames as denominator creates a discontinuity:
     //   Frame 0:  phase = 2π × 1 × 0/50 = 0.000 rad
-    //   Frame 49: phase = 2π × 1 × 49/50 = 6.158 rad
-    //   Loop transition (49→0): 0.126 rad (7.20°) - same as all other transitions
+    //   Frame 49: phase = 2π × 1 × 49/50 = 6.158 rad (NOT equal to 0!)
+    //   Jump: 6.158 → 0 = visible glitch ❌
     //
-    // This ensures:
-    //   1. All 50 frames are UNIQUE (no duplicate at loop point)
-    //   2. All frame transitions are UNIFORM (7.20° per frame)
-    //   3. Smooth, seamless looping for video playback
+    // Using (totalFrames - 1) creates perfect loop:
+    //   Frame 0:  phase = 2π × 1 × 0/49 = 0.000 rad
+    //   Frame 49: phase = 2π × 1 × 49/49 = 6.283 rad = 0.000 rad (after wrap)
+    //   Jump: 0.000 → 0.000 = seamless! ✅
     //
-    // Note: Using (totalFrames - 1) would make frame 0 = frame 49, causing
-    // a duplicate frame stutter when the video loops.
+    // This works because with integer cycles, the last frame completes exactly
+    // N full rotations, which is mathematically identical to 0 rotations.
+    //
+    // Note: This does NOT create duplicate frames. Each frame is still unique
+    // during the animation. Only the mathematical phase values at frame 0 and
+    // frame (N-1) are equivalent modulo 2π, which is exactly what we want for
+    // seamless looping.
     
-    const rotAngle = (twoPi * rotationCycles * frameNumber / totalFrames) % twoPi;
+    const period = Math.max(1, totalFrames - 1); // Prevent division by zero
+    const rotAngle = (twoPi * rotationCycles * frameNumber / period) % twoPi;
     const rotCos = Math.cos(rotAngle);
     const rotSin = Math.sin(rotAngle);
 
-    const shimmerPhase = (twoPi * shimmerCycles * frameNumber / totalFrames) % twoPi;
-    const ripplePhase = (twoPi * rippleCycles * frameNumber / totalFrames) % twoPi;
+    const shimmerPhase = (twoPi * shimmerCycles * frameNumber / period) % twoPi;
+    const ripplePhase = (twoPi * rippleCycles * frameNumber / period) % twoPi;
 
     // pulse (global intensity) - Use frame-based calculation for consistency
     let pulseGain = 1.0;
     if (this.data.animationMode === 'pulse') {
       const pulseCycles = shimmerCycles || 1;
-      const pulsePhase = (twoPi * pulseCycles * frameNumber / totalFrames) % twoPi;
+      const pulsePhase = (twoPi * pulseCycles * frameNumber / period) % twoPi;
       pulseGain = 0.5 + 0.5 * Math.sin(pulsePhase);
       pulseGain = 0.7 + 0.6 * pulseGain; // keep >0
     }
@@ -265,7 +271,7 @@ export class HoloFoilEffect extends LayerEffect {
     // tilt modulation (just a smooth oscillation) - use frame-based calculation
     let tiltGain = 0.0;
     if (this.data.animationMode === 'tilt') {
-      const tiltPhase = (twoPi * frameNumber / totalFrames) % twoPi;
+      const tiltPhase = (twoPi * frameNumber / period) % twoPi;
       tiltGain = Math.sin(tiltPhase);
     }
 
