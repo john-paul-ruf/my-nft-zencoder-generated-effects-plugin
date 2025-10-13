@@ -96,6 +96,30 @@ export async function register(EffectRegistry, PositionRegistry) {
         console.log('📦 [Plugin] Importing AuroraCascade keyframe effect...');
         const { AuroraCascadeEffect, AuroraCascadeConfig } = await import('./src/effects/keyframeEffects/AuroraCascade/AuroraCascadeEffect.js');
         
+        // Import presets
+        console.log('📦 [Plugin] Importing presets...');
+        const {
+            QUANTUM_FIELD_PRESETS,
+            CIRCUIT_STREAM_PRESETS,
+            METATRON_CUBE_PRESETS,
+            CYMATICS_RESONANCE_PRESETS,
+            AURORA_KALEIDO_PRESETS,
+            FLOW_FIELD_PRESETS,
+            LIQUID_CHROMATIC_PRESETS,
+            HOLOGRAPHIC_PRISM_PRESETS,
+            CHRONO_LENTICULAR_FOIL_PRESETS,
+            CHROMATIC_ABERRATION_SECONDARY_PRESETS,
+            ORBIT_BLOOM_PRESETS,
+            VOID_ECHO_PRESETS,
+            FLUX_WEAVE_PRESETS,
+            CHROMATIC_ABERRATION_FINAL_PRESETS,
+            PRISMATIC_SHATTER_PRESETS,
+            HOLO_FOIL_PRESETS,
+            SPECTRAL_OVERWATCH_PRESETS,
+            TACTICAL_PULSE_GRID_PRESETS,
+            AURORA_CASCADE_PRESETS
+        } = await import('./src/effects/presets.js');
+        
         // Set the config class reference
         QuantumFieldEffect._configClass_ = QuantumFieldConfig;
         FlowFieldEffect._configClass_ = FlowFieldConfig;
@@ -116,6 +140,29 @@ export async function register(EffectRegistry, PositionRegistry) {
         SpectralOverwatchEffect._configClass_ = SpectralOverwatchConfig;
         TacticalPulseGridEffect._configClass_ = TacticalPulseGridConfig;
         AuroraCascadeEffect._configClass_ = AuroraCascadeConfig;
+        
+        // Set presets for each effect
+        console.log('🎨 [Plugin] Setting presets for effects...');
+        QuantumFieldEffect.presets = QUANTUM_FIELD_PRESETS;
+        CircuitStreamEffect.presets = CIRCUIT_STREAM_PRESETS;
+        MetatronCubeEffect.presets = METATRON_CUBE_PRESETS;
+        CymaticsResonanceEffect.presets = CYMATICS_RESONANCE_PRESETS;
+        AuroraKaleidoEffect.presets = AURORA_KALEIDO_PRESETS;
+        FlowFieldEffect.presets = FLOW_FIELD_PRESETS;
+        LiquidChromaticEffect.presets = LIQUID_CHROMATIC_PRESETS;
+        HolographicPrismEffect.presets = HOLOGRAPHIC_PRISM_PRESETS;
+        ChronoLenticularFoilEffect.presets = CHRONO_LENTICULAR_FOIL_PRESETS;
+        ChromaticAberrationSecondaryEffect.presets = CHROMATIC_ABERRATION_SECONDARY_PRESETS;
+        OrbitBloomEffect.presets = ORBIT_BLOOM_PRESETS;
+        VoidEchoEffect.presets = VOID_ECHO_PRESETS;
+        FluxWeaveEffect.presets = FLUX_WEAVE_PRESETS;
+        ChromaticAberrationEffect.presets = CHROMATIC_ABERRATION_FINAL_PRESETS;
+        PrismaticShatterEffect.presets = PRISMATIC_SHATTER_PRESETS;
+        HoloFoilEffect.presets = HOLO_FOIL_PRESETS;
+        SpectralOverwatchEffect.presets = SPECTRAL_OVERWATCH_PRESETS;
+        TacticalPulseGridEffect.presets = TACTICAL_PULSE_GRID_PRESETS;
+        AuroraCascadeEffect.presets = AURORA_CASCADE_PRESETS;
+        console.log('✅ [Plugin] Presets set for all effects');
         
         console.log('🔄 [Plugin] All imports successful, registering effects...');
 
