@@ -557,11 +557,18 @@ export class AuroraCascadeEffect extends LayerEffect {
     const width = settings?.width || 1024;
     const height = settings?.height || 1024;
     
+    // Ensure config exists
+    if (!this.config) {
+      this.config = new AuroraCascadeConfig();
+    }
+    
     // Parse schedule
     const keyFrames = Array.isArray(this.config.keyFrames) 
       ? this.config.keyFrames.slice().sort((a, b) => a - b) 
       : [];
-    const [minLen, maxLen] = this.config.cascadeDuration;
+    const [minLen, maxLen] = Array.isArray(this.config.cascadeDuration) && this.config.cascadeDuration.length === 2
+      ? this.config.cascadeDuration
+      : [30, 60];
     
     // Build schedule with deterministic durations
     this.schedule = keyFrames.map((start, i) => {

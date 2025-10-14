@@ -239,11 +239,18 @@ export class TacticalPulseGridEffect extends LayerEffect {
     const width = settings?.width || 1024;
     const height = settings?.height || 1024;
     
+    // Ensure config exists
+    if (!this.config) {
+      this.config = new TacticalPulseGridConfig();
+    }
+    
     // Parse schedule
     const keyFrames = Array.isArray(this.config.keyFrames) 
       ? this.config.keyFrames.slice().sort((a, b) => a - b) 
       : [];
-    const [minLen, maxLen] = this.config.pulseDuration;
+    const [minLen, maxLen] = Array.isArray(this.config.pulseDuration) && this.config.pulseDuration.length === 2
+      ? this.config.pulseDuration
+      : [20, 40];
     
     // Build schedule with deterministic durations
     this.schedule = keyFrames.map((start, i) => {
