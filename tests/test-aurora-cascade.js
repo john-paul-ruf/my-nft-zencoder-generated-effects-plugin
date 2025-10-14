@@ -18,7 +18,7 @@ class TestLayer {
     this.buffer = buffer;
   }
 
-  async getBuffer() {
+  async toBuffer() {
     return this.buffer;
   }
 
@@ -199,12 +199,12 @@ async function testEffect(configName, config, outputDir) {
     
     // Test with alpha
     const resultAlpha = await effect.invoke(layerWithAlpha, frame, totalFrames);
-    const bufferAlpha = await resultAlpha.getBuffer();
+    const bufferAlpha = await resultAlpha.toBuffer();
     await sharp(bufferAlpha).toFile(path.join(testOutputDir, `frame-${String(frame).padStart(3, '0')}-alpha.png`));
     
     // Test with opaque
     const resultOpaque = await effect.invoke(layerOpaque, frame, totalFrames);
-    const bufferOpaque = await resultOpaque.getBuffer();
+    const bufferOpaque = await resultOpaque.toBuffer();
     await sharp(bufferOpaque).toFile(path.join(testOutputDir, `frame-${String(frame).padStart(3, '0')}-opaque.png`));
   }
   
@@ -219,8 +219,8 @@ async function testEffect(configName, config, outputDir) {
     const resultStart = await effect.invoke(layerWithAlpha, startFrame, totalFrames);
     const resultEnd = await effect.invoke(layerWithAlpha, endFrame, totalFrames);
     
-    const bufferStart = await resultStart.getBuffer();
-    const bufferEnd = await resultEnd.getBuffer();
+    const bufferStart = await resultStart.toBuffer();
+    const bufferEnd = await resultEnd.toBuffer();
     
     // These should be identical for perfect loop
     await sharp(bufferStart).toFile(path.join(testOutputDir, 'loop-start.png'));

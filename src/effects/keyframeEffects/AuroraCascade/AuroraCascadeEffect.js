@@ -277,17 +277,23 @@ class RibbonRenderer {
         tertiary: '#B0E0E6'
       },
       custom: {
-        primary: this.config.primaryColor,
-        secondary: this.config.secondaryColor,
-        tertiary: this.config.tertiaryColor
+        primary: this.config.primaryColor || '#00FF7F',
+        secondary: this.config.secondaryColor || '#4169E1',
+        tertiary: this.config.tertiaryColor || '#9400D3'
       }
     };
 
     const palette = modes[this.config.colorMode] || modes.natural;
+    
+    // Ensure palette colors are strings before parsing
+    const primaryStr = String(palette.primary || '#00FF7F');
+    const secondaryStr = String(palette.secondary || '#4169E1');
+    const tertiaryStr = String(palette.tertiary || '#9400D3');
+    
     this.colors = {
-      primary: hexToRgb(palette.primary),
-      secondary: hexToRgb(palette.secondary),
-      tertiary: hexToRgb(palette.tertiary)
+      primary: hexToRgb(primaryStr),
+      secondary: hexToRgb(secondaryStr),
+      tertiary: hexToRgb(tertiaryStr)
     };
   }
 
@@ -389,16 +395,28 @@ class RibbonRenderer {
     const boostedColor1 = this.boostSaturation(color1);
     const boostedColor2 = this.boostSaturation(color2);
     
-    gradient.addColorStop(0, `rgba(${boostedColor1.r}, ${boostedColor1.g}, ${boostedColor1.b}, 0)`);
-    gradient.addColorStop(0.3, `rgba(${boostedColor1.r}, ${boostedColor1.g}, ${boostedColor1.b}, 0.4)`);
-    gradient.addColorStop(0.5, `rgba(${boostedColor2.r}, ${boostedColor2.g}, ${boostedColor2.b}, 0.8)`);
-    gradient.addColorStop(0.7, `rgba(${boostedColor1.r}, ${boostedColor1.g}, ${boostedColor1.b}, 0.4)`);
-    gradient.addColorStop(1, `rgba(${boostedColor1.r}, ${boostedColor1.g}, ${boostedColor1.b}, 0)`);
+    // Ensure colors are valid numbers (clamp to 0-255 range)
+    const c1r = Math.max(0, Math.min(255, Math.floor(boostedColor1.r || 0)));
+    const c1g = Math.max(0, Math.min(255, Math.floor(boostedColor1.g || 0)));
+    const c1b = Math.max(0, Math.min(255, Math.floor(boostedColor1.b || 0)));
+    const c2r = Math.max(0, Math.min(255, Math.floor(boostedColor2.r || 0)));
+    const c2g = Math.max(0, Math.min(255, Math.floor(boostedColor2.g || 0)));
+    const c2b = Math.max(0, Math.min(255, Math.floor(boostedColor2.b || 0)));
+    
+    gradient.addColorStop(0, `rgba(${c1r}, ${c1g}, ${c1b}, 0)`);
+    gradient.addColorStop(0.3, `rgba(${c1r}, ${c1g}, ${c1b}, 0.4)`);
+    gradient.addColorStop(0.5, `rgba(${c2r}, ${c2g}, ${c2b}, 0.8)`);
+    gradient.addColorStop(0.7, `rgba(${c1r}, ${c1g}, ${c1b}, 0.4)`);
+    gradient.addColorStop(1, `rgba(${c1r}, ${c1g}, ${c1b}, 0)`);
     
     return gradient;
   }
 
   blendColors(color1, color2, t) {
+    // Validate input colors
+    if (!color1 || typeof color1.r !== 'number') color1 = { r: 255, g: 255, b: 255 };
+    if (!color2 || typeof color2.r !== 'number') color2 = { r: 255, g: 255, b: 255 };
+    
     return {
       r: Math.round(lerp(color1.r, color2.r, t)),
       g: Math.round(lerp(color1.g, color2.g, t)),
@@ -407,9 +425,21 @@ class RibbonRenderer {
   }
 
   boostSaturation(color) {
+    // Validate color object
+    if (!color || typeof color.r !== 'number' || typeof color.g !== 'number' || typeof color.b !== 'number') {
+      return { r: 255, g: 255, b: 255 }; // Return white as fallback
+    }
+    
     const hsl = rgbToHsl(color.r, color.g, color.b);
     hsl.s = Math.min(1, hsl.s * this.config.saturationBoost);
-    return hslToRgb(hsl.h, hsl.s, hsl.l);
+    const result = hslToRgb(hsl.h, hsl.s, hsl.l);
+    
+    // Validate result
+    if (!result || typeof result.r !== 'number' || typeof result.g !== 'number' || typeof result.b !== 'number') {
+      return { r: 255, g: 255, b: 255 }; // Return white as fallback
+    }
+    
+    return result;
   }
 }
 
@@ -549,13 +579,13 @@ export class AuroraCascadeEffect extends LayerEffect {
   static _tags_ = ['effect', 'keyframe', 'aurora', 'cascade', 'particles', 'animated'];
 
   constructor({ name = AuroraCascadeEffect._name_, config, settings } = {}) {
-    super({ name, config });
+    super({ name, config, settings });
     this.#initialize(settings);
   }
 
   #initialize(settings) {
-    const width = settings?.width || 1024;
-    const height = settings?.height || 1024;
+    const width = settings?.width || this.finalSize?.width || 1024;
+    const height = settings?.height || this.finalSize?.height || 1024;
     
     // Ensure config exists
     if (!this.config) {
@@ -619,8 +649,58 @@ export class AuroraCascadeEffect extends LayerEffect {
     const { t } = timeInfo;
     
     // Get layer buffer
-    const layerBuffer = await layer.getBuffer();
+    const layerBuffer = await layer.toBuffer();
     const inputMetadata = await sharp(layerBuffer).metadata();
+    
+    // Ensure dimensions are set (lazy initialization for secondary effects)
+    if (!this.width || !this.height) {
+      this.width = inputMetadata.width || 1024;
+      this.height = inputMetadata.height || 1024;
+    }
+    
+    // Ensure config exists and is properly hydrated (for deserialization)
+    let configWasHydrated = false;
+    if (!this.config) {
+      this.config = new AuroraCascadeConfig();
+      configWasHydrated = true;
+    } else if (!(this.config instanceof AuroraCascadeConfig)) {
+      // Config exists but is a plain object (from deserialization) - hydrate it
+      this.config = new AuroraCascadeConfig(this.config);
+      configWasHydrated = true;
+    }
+    
+    // Ensure schedule is initialized (lazy initialization for secondary effects)
+    if (!this.schedule) {
+      const keyFrames = Array.isArray(this.config.keyFrames) 
+        ? this.config.keyFrames.slice().sort((a, b) => a - b) 
+        : [];
+      const [minLen, maxLen] = Array.isArray(this.config.cascadeDuration) && this.config.cascadeDuration.length === 2
+        ? this.config.cascadeDuration
+        : [30, 60];
+      
+      this.schedule = keyFrames.map((start, i) => {
+        const u = hash2(this.config.seed, i);
+        const duration = minLen + Math.floor(u * (maxLen - minLen + 1));
+        return { start, duration };
+      });
+    }
+    
+    // Ensure cycles are initialized (lazy initialization for secondary effects)
+    if (!this.flowCycles) {
+      this.flowCycles = Math.max(1, Math.round(this.config.flowSpeed));
+      this.waveCycles = Math.max(1, Math.round(this.config.waveFrequency));
+      this.colorCycles = Math.max(1, Math.round(this.config.colorShiftSpeed));
+      this.shimmerCycles = Math.max(1, Math.round(this.config.shimmerSpeed));
+    }
+    
+    // Ensure renderers are initialized (lazy initialization for secondary effects)
+    // If config was hydrated, recreate renderers to use the proper config instance
+    if (!this.ribbonRenderer || configWasHydrated) {
+      this.ribbonRenderer = new RibbonRenderer(this.config);
+    }
+    if (!this.particleSystem || configWasHydrated) {
+      this.particleSystem = new ParticleSystem(this.config, this.config.seed);
+    }
     
     // Create canvas for effect rendering
     const canvas = createCanvas(this.width, this.height);
@@ -696,8 +776,9 @@ export class AuroraCascadeEffect extends LayerEffect {
         .toBuffer();
     }
 
-    // Return new layer
-    return layer.constructor.fromBuffer(composite);
+    // Update layer with composited result
+    await layer.fromBuffer(composite);
+    return layer;
   }
   
   #applyEdgeFade(ctx) {
