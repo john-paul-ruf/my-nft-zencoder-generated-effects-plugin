@@ -1,21 +1,48 @@
 {
-  "name": "my-nft-effect-plugin-test",
+  "name": "my-nft-zencoder-generated-effects-plugins",
   "version": "1.0.0",
-  "description": "",
+  "description": "A comprehensive JavaScript plugin library providing advanced visual effects for my-nft-gen, including primary effects, secondary effects, keyframe effects, and final image effects.",
   "main": "plugin.js",
   "type": "module",
+  "author": {
+    "name": "John Paul Ruf",
+    "email": "john.paul.ruf@gmail.com",
+    "url": "https://github.com/john-paul-ruf"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/john-paul-ruf/my-nft-zencoder-generated-effects-plugin.git"
+  },
+  "bugs": {
+    "url": "https://github.com/john-paul-ruf/my-nft-zencoder-generated-effects-plugin/issues"
+  },
+  "homepage": "https://github.com/john-paul-ruf/my-nft-zencoder-generated-effects-plugin#readme",
+  "keywords": [
+    "nft",
+    "effects",
+    "visual-effects",
+    "animation",
+    "plugin",
+    "generative-art",
+    "canvas",
+    "quantum-field",
+    "circuit-stream",
+    "aurora-cascade"
+  ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "demo": "node index.js",
     "test:primary": "node tests/test-runner-primary.js --list",
     "test:primary:run": "node tests/test-runner-primary.js --effect quantum-field --width 1024 --height 1024 --frames 120 --out ./docs/primary-effects/quantum-field.png"
   },
-  "devDependencies": {
-    "my-nft-gen": "file:../my-nft-gen"
-  },
-  "private": true,
   "dependencies": {
     "canvas": "^3.2.0",
-    "sharp": "0.33.5"
+    "sharp": "0.33.5",
+    "my-nft-gen": "^1.0.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
