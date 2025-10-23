@@ -1,6 +1,6 @@
 import {EffectConfig} from 'my-nft-gen/src/core/layer/EffectConfig.js';
-import {ColorPicker} from "../../../../../my-nft-gen/src/core/layer/configType/ColorPicker.js";
-import {getAllFindValueAlgorithms} from "../../../../../my-nft-gen/index.js";
+import {ColorPicker} from "my-nft-gen/src/core/layer/configType/ColorPicker.js";
+import {getAllFindValueAlgorithms} from "my-nft-gen/index.js";
 
 export class QuantumFieldConfig extends EffectConfig {
     constructor({
