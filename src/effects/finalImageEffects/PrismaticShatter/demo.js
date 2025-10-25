@@ -9,16 +9,16 @@
 
 import { PrismaticShatterEffect } from './PrismaticShatterEffect.js';
 import { PrismaticShatterConfig } from './PrismaticShatterConfig.js';
-import { createCanvas } from 'canvas';
+import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
 import fs from 'fs/promises';
 import path from 'path';
 
 /**
  * Create a test pattern canvas
  */
-function createTestPattern(width, height) {
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+async function createTestPattern(width, height) {
+  const canvas = await Canvas2dFactory.getNewCanvas(width, height);
+  const ctx = canvas.ctx;
   
   // Create colorful gradient background
   const gradient = ctx.createLinearGradient(0, 0, width, height);
@@ -62,7 +62,8 @@ function createTestPattern(width, height) {
   ctx.fillText('PRISMATIC', width / 2, height / 2 - 30);
   ctx.fillText('SHATTER', width / 2, height / 2 + 30);
   
-  return { canvas };
+  const layer = await canvas.convertToLayer();
+  return layer;
 }
 
 /**
@@ -213,8 +214,8 @@ async function runDemo() {
   
   // Generate comparison grid
   console.log('\n📊 Generating comparison grid...');
-  const gridCanvas = createCanvas(width * 3, height * 2);
-  const gridCtx = gridCanvas.getContext('2d');
+  const gridCanvas = await Canvas2dFactory.getNewCanvas(width * 3, height * 2);
+  const gridCtx = gridCanvas.ctx;
   
   let gridX = 0;
   let gridY = 0;
@@ -248,7 +249,7 @@ async function runDemo() {
   }
   
   const gridPath = path.join(outputDir, 'comparison-grid.png');
-  const gridBuffer = gridCanvas.toBuffer('image/png');
+  const gridBuffer = await gridCanvas.toBuffer('image/png');
   await fs.writeFile(gridPath, gridBuffer);
   console.log(`  ✓ Comparison grid saved to: ${gridPath}`);
   

@@ -1,6 +1,6 @@
 // Quick test runner for Tactical Pulse Grid effect
 import { TacticalPulseGridEffect, TacticalPulseGridConfig } from '../src/effects/keyframeEffects/TacticalPulseGrid/index.js';
-import { createCanvas } from 'canvas';
+import { Canvas2dFactory } from '../my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
 import fs from 'fs/promises';
 
 async function quickTest() {
@@ -9,8 +9,8 @@ async function quickTest() {
   // Create a simple test layer
   const width = 512;
   const height = 512;
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+  const canvas = await Canvas2dFactory.getNewCanvas(width, height);
+  const ctx = canvas.ctx;
   
   // Draw a simple gradient background
   const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width/2);
@@ -25,8 +25,9 @@ async function quickTest() {
   ctx.textAlign = 'center';
   ctx.fillText('TARGET', width/2, height/2);
   
+  const buffer = await canvas.toBuffer('image/png');
   const testLayer = {
-    buffer: canvas.toBuffer('image/png'),
+    buffer,
     name: 'test-layer',
     _captured: null,
     toBuffer: async function() {

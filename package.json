@@ -1,6 +1,6 @@
 {
   "name": "my-nft-zencoder-generated-effects-plugins",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A comprehensive JavaScript plugin library providing advanced visual effects for my-nft-gen, including primary effects, secondary effects, keyframe effects, and final image effects.",
   "main": "plugin.js",
   "type": "module",
@@ -37,7 +37,6 @@
     "test:primary:run": "node tests/test-runner-primary.js --effect quantum-field --width 1024 --height 1024 --frames 120 --out ./docs/primary-effects/quantum-field.png"
   },
   "dependencies": {
-    "canvas": "^3.2.0",
     "sharp": "0.33.5",
     "my-nft-gen": "^1.0.0"
   },

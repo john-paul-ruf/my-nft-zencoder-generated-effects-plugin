@@ -1,5 +1,5 @@
 // Test runner for Aurora Cascade keyframe effect
-import { createCanvas, loadImage } from 'canvas';
+import { Canvas2dFactory } from '../my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
@@ -126,8 +126,8 @@ const testConfigs = [
 
 async function createTestLayer(width, height, hasAlpha = true) {
   // Create a gradient background with some shapes for testing
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+  const canvas = await Canvas2dFactory.getNewCanvas(width, height);
+  const ctx = canvas.ctx;
   
   if (!hasAlpha) {
     // Solid background
@@ -156,7 +156,7 @@ async function createTestLayer(width, height, hasAlpha = true) {
   ctx.lineTo(width * 0.9, height * 0.2);
   ctx.stroke();
   
-  const buffer = canvas.toBuffer('image/png');
+  const buffer = await canvas.toBuffer('image/png');
   return new TestLayer(buffer);
 }
 

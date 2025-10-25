@@ -2,15 +2,15 @@
 // Demo script for Tactical Pulse Grid effect
 
 import { TacticalPulseGridEffect, TacticalPulseGridConfig } from './index.js';
-import { createCanvas } from 'canvas';
+import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
 import sharp from 'sharp';
 import fs from 'fs/promises';
 import path from 'path';
 
 async function createTestLayer(width, height) {
   // Create a test image with some geometric shapes
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+  const canvas = await Canvas2dFactory.getNewCanvas(width, height);
+  const ctx = canvas.ctx;
   
   // Clear with transparency
   ctx.clearRect(0, 0, width, height);
@@ -76,9 +76,9 @@ async function createTestLayer(width, height) {
   ctx.arc(width * 0.75, height * 0.5, 40, 0, Math.PI * 2);
   ctx.fill();
   
-  // Convert to buffer
-  const buffer = canvas.toBuffer('image/png');
-  return { buffer, name: 'test-layer' };
+  // Convert to layer via Canvas2dFactory
+  const layer = await canvas.convertToLayer();
+  return layer;
 }
 
 async function demo() {

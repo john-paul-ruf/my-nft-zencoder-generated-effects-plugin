@@ -73,25 +73,8 @@ function printUsage(availableNames) {
 }
 
 async function createLayer(settings, canvas) {
-  // Try to get a 2D context, with fallbacks
-  const ctx = canvas?.ctx || canvas?.context || canvas?.getContext?.('2d') || {
-    canvas: { width: settings.width, height: settings.height },
-    // Minimal noop 2D API to avoid crashes if context isn't available
-    save: () => {}, restore: () => {},
-    globalCompositeOperation: 'normal', globalAlpha: 1,
-    fillStyle: '#000000', strokeStyle: '#000000', lineWidth: 1,
-    shadowColor: 'rgba(0,0,0,0)', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0,
-    filter: 'none',
-    beginPath: () => {}, closePath: () => {}, moveTo: () => {}, lineTo: () => {},
-    quadraticCurveTo: () => {}, arc: () => {}, rect: () => {}, fill: () => {}, stroke: () => {},
-    fillRect: () => {}, strokeRect: () => {}, clearRect: () => {},
-    fillText: () => {}, strokeText: () => {}, setLineDash: () => {},
-    createRadialGradient: () => ({ addColorStop: () => {} }),
-    createLinearGradient: () => ({ addColorStop: () => {} }),
-    font: '10px sans-serif', textAlign: 'left', textBaseline: 'alphabetic',
-    translate: () => {}, rotate: () => {}, scale: () => {}, transform: () => {},
-    setTransform: () => {}, resetTransform: () => {},
-  };
+  // Use the context from Canvas2dFactory
+  const ctx = canvas.ctx;
 
   // Layer stub that captures last composited layer for export
   const layer = {

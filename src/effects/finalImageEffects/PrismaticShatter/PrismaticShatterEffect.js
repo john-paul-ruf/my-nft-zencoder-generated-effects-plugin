@@ -1,6 +1,4 @@
 import { LayerEffect } from 'my-nft-gen/src/core/layer/LayerEffect.js';
-import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
-import { loadImage } from 'canvas';
 
 /**
  * PrismaticShatter Effect - Crystalline Light Refraction

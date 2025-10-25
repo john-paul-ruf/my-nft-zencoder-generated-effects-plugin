@@ -8,7 +8,7 @@
 
 import { PrismaticShatterEffect } from './PrismaticShatterEffect.js';
 import { PrismaticShatterConfig } from './PrismaticShatterConfig.js';
-import { createCanvas } from 'canvas';
+import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
 
 /**
  * Test utilities
@@ -47,9 +47,9 @@ class TestRunner {
 /**
  * Create test layer
  */
-function createTestLayer(width = 512, height = 512) {
-  const canvas = createCanvas(width, height);
-  const ctx = canvas.getContext('2d');
+async function createTestLayer(width = 512, height = 512) {
+  const canvas = await Canvas2dFactory.getNewCanvas(width, height);
+  const ctx = canvas.ctx;
   
   // Simple gradient for testing
   const gradient = ctx.createLinearGradient(0, 0, width, height);
@@ -59,7 +59,8 @@ function createTestLayer(width = 512, height = 512) {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
   
-  return { canvas };
+  const layer = await canvas.convertToLayer();
+  return layer;
 }
 
 /**
@@ -128,7 +129,7 @@ async function runTests() {
       settings: { width: 512, height: 512 }
     });
     
-    const layer = createTestLayer();
+    const layer = await createTestLayer();
     const result = await effect.invoke(layer, 0, 1);
     
     if (!result) throw new Error('No result returned');
@@ -143,7 +144,7 @@ async function runTests() {
       settings: { width: 256, height: 256 }
     });
     
-    const layer = createTestLayer(256, 256);
+    const layer = await createTestLayer(256, 256);
     const frames = 30;
     
     // Generate first and last frame
@@ -172,7 +173,7 @@ async function runTests() {
       settings: { width: 256, height: 256 }
     });
     
-    const layer = createTestLayer(256, 256);
+    const layer = await createTestLayer(256, 256);
     
     const result1 = await effect1.invoke(layer, 10, 30);
     const result2 = await effect2.invoke(layer, 10, 30);
@@ -187,7 +188,7 @@ async function runTests() {
   // Test 8: Different blend modes
   runner.test('Effect handles different blend modes', async () => {
     const blendModes = ['normal', 'screen', 'overlay', 'add'];
-    const layer = createTestLayer(128, 128);
+    const layer = await createTestLayer(128, 128);
     
     for (const mode of blendModes) {
       const config = new PrismaticShatterConfig({ shardBlendMode: mode });
@@ -218,7 +219,7 @@ async function runTests() {
       settings: { width: 256, height: 256 }
     });
     
-    const layer = createTestLayer(256, 256);
+    const layer = await createTestLayer(256, 256);
     const result = await effect.invoke(layer, 0, 1);
     
     if (!result?.canvas) throw new Error('Result not generated');
@@ -238,7 +239,7 @@ async function runTests() {
       settings: { width: 512, height: 512 }
     });
     
-    const layer = createTestLayer(512, 512);
+    const layer = await createTestLayer(512, 512);
     const startTime = Date.now();
     const result = await effect.invoke(layer, 0, 1);
     const renderTime = Date.now() - startTime;
@@ -250,7 +251,7 @@ async function runTests() {
   // Test 11: Effect intensity
   runner.test('Effect intensity scales properly', async () => {
     const intensities = [0, 0.5, 1.0];
-    const layer = createTestLayer(128, 128);
+    const layer = await createTestLayer(128, 128);
     
     for (const intensity of intensities) {
       const config = new PrismaticShatterConfig({ effectIntensity: intensity });
