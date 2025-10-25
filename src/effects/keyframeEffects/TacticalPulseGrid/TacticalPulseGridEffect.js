@@ -3,8 +3,8 @@
 
 import { LayerEffect } from 'my-nft-gen/src/core/layer/LayerEffect.js';
 import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
+import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
 import sharp from 'sharp';
-import { createCanvas } from 'canvas';
 
 // ========== UTILITY FUNCTIONS ==========
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -482,35 +482,21 @@ export class TacticalPulseGridEffect extends LayerEffect {
     
     const t = timeInfo.t;
     
-    // Load source image
-    const sourceImage = sharp(layer.buffer);
-    const metadata = await sourceImage.metadata();
+    // Get layer metadata
+    const metadata = await sharp(layer.buffer).metadata();
     const { width, height } = metadata;
     
-    // Create canvas for effect
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
+    // Create canvas using Canvas2dFactory
+    const canvas = await Canvas2dFactory.getNewCanvas(width, height);
     
-    // Load source as image data
-    const sourceBuffer = await sourceImage.raw().toBuffer();
-    const imageData = ctx.createImageData(width, height);
-    
-    // Copy source to canvas (preserving alpha)
-    for (let i = 0; i < sourceBuffer.length; i++) {
-      imageData.data[i] = sourceBuffer[i];
-    }
-    ctx.putImageData(imageData, 0, 0);
-    
-    // Apply grid overlay
+    // Draw grid cells with pulse activation using Canvas2d API
     const gridRgb = hexToRgb(this.config.gridColor);
     const pulseRgb = hexToRgb(this.config.pulseColor);
     const centerX = width / 2;
     const centerY = height / 2;
     
-    ctx.globalCompositeOperation = this.config.blendMode === 'additive' ? 'lighter' : this.config.blendMode;
-    
     // Draw grid cells with pulse activation
-    this.gridPositions.forEach(pos => {
+    for (const pos of this.gridPositions) {
       const activation = this.#calculatePulseActivation(pos.x, pos.y, t, centerX, centerY);
       const cellOpacity = this.config.gridOpacity + activation * this.config.pulseIntensity;
       
@@ -518,141 +504,112 @@ export class TacticalPulseGridEffect extends LayerEffect {
       const r = Math.floor(lerp(gridRgb.r, pulseRgb.r, activation));
       const g = Math.floor(lerp(gridRgb.g, pulseRgb.g, activation));
       const b = Math.floor(lerp(gridRgb.b, pulseRgb.b, activation));
+      const colorHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
       
-      ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${cellOpacity})`;
-      ctx.lineWidth = 1 + activation * 2;
+      const lineWidth = 1 + activation * 2;
       
       if (this.config.gridMode === 'hexagonal') {
-        // Draw hexagon
-        ctx.beginPath();
+        // Build hexagon path
+        const hexPath = [];
         for (let i = 0; i < 6; i++) {
           const angle = Math.PI / 3 * i;
-          const x = pos.x + this.config.cellSize * Math.cos(angle);
-          const y = pos.y + this.config.cellSize * Math.sin(angle);
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
+          hexPath.push({
+            x: pos.x + this.config.cellSize * Math.cos(angle),
+            y: pos.y + this.config.cellSize * Math.sin(angle)
+          });
         }
-        ctx.closePath();
-        ctx.stroke();
+        // Close the path
+        hexPath.push(hexPath[0]);
+        await canvas.drawPath(hexPath, lineWidth, colorHex, cellOpacity);
       } else if (this.config.gridMode === 'square') {
-        ctx.strokeRect(
-          pos.x - this.config.cellSize / 2,
-          pos.y - this.config.cellSize / 2,
-          this.config.cellSize,
-          this.config.cellSize
-        );
+        // Build square path
+        const half = this.config.cellSize / 2;
+        const squarePath = [
+          { x: pos.x - half, y: pos.y - half },
+          { x: pos.x + half, y: pos.y - half },
+          { x: pos.x + half, y: pos.y + half },
+          { x: pos.x - half, y: pos.y + half },
+          { x: pos.x - half, y: pos.y - half }
+        ];
+        await canvas.drawPath(squarePath, lineWidth, colorHex, cellOpacity);
+      } else if (this.config.gridMode === 'triangular') {
+        // Build triangular path
+        const triPath = [
+          { x: pos.x, y: pos.y - this.config.cellSize / 2 },
+          { x: pos.x + this.config.cellSize / 2, y: pos.y + this.config.cellSize / 2 },
+          { x: pos.x - this.config.cellSize / 2, y: pos.y + this.config.cellSize / 2 },
+          { x: pos.x, y: pos.y - this.config.cellSize / 2 }
+        ];
+        await canvas.drawPath(triPath, lineWidth, colorHex, cellOpacity);
       }
       
       // Add glow for activated cells
       if (activation > 0.5 && this.config.pulseGlow) {
-        ctx.shadowColor = `rgba(${pulseRgb.r}, ${pulseRgb.g}, ${pulseRgb.b}, ${activation})`;
-        ctx.shadowBlur = 10 * activation;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
+        const glowPath = [];
+        for (let i = 0; i < 6; i++) {
+          const angle = Math.PI / 3 * i;
+          glowPath.push({
+            x: pos.x + this.config.cellSize * 1.3 * Math.cos(angle),
+            y: pos.y + this.config.cellSize * 1.3 * Math.sin(angle)
+          });
+        }
+        glowPath.push(glowPath[0]);
+        await canvas.drawPath(glowPath, lineWidth * 0.5, colorHex, cellOpacity * 0.5);
       }
-    });
+    }
     
-    // Draw targeting reticles
+    // Draw targeting reticles using Canvas2d API
     const reticleRgb = hexToRgb(this.config.reticleColor);
     for (let i = 0; i < this.config.reticleCount; i++) {
       const reticle = this.#getReticlePosition(i, t);
       const size = width * this.config.reticleSize;
+      const reticleOpacity = reticle.isLocked ? 1.0 : 0.6;
+      const reticleLineWidth = reticle.isLocked ? 3 : 2;
       
-      ctx.strokeStyle = reticle.isLocked 
-        ? `rgba(${reticleRgb.r}, ${reticleRgb.g}, ${reticleRgb.b}, 1)`
-        : `rgba(${reticleRgb.r}, ${reticleRgb.g}, ${reticleRgb.b}, 0.6)`;
-      ctx.lineWidth = reticle.isLocked ? 3 : 2;
+      const reticleColorHex = `#${reticleRgb.r.toString(16).padStart(2, '0')}${reticleRgb.g.toString(16).padStart(2, '0')}${reticleRgb.b.toString(16).padStart(2, '0')}`;
       
-      // Draw reticle crosshair
-      ctx.beginPath();
-      // Horizontal line
-      ctx.moveTo(reticle.x - size/2, reticle.y);
-      ctx.lineTo(reticle.x - size/4, reticle.y);
-      ctx.moveTo(reticle.x + size/4, reticle.y);
-      ctx.lineTo(reticle.x + size/2, reticle.y);
-      // Vertical line
-      ctx.moveTo(reticle.x, reticle.y - size/2);
-      ctx.lineTo(reticle.x, reticle.y - size/4);
-      ctx.moveTo(reticle.x, reticle.y + size/4);
-      ctx.lineTo(reticle.x, reticle.y + size/2);
-      ctx.stroke();
+      // Draw crosshair with drawLine2d
+      await canvas.drawLine2d(reticle.x - size/2, reticle.y, reticle.x - size/4, reticle.y, reticleLineWidth, reticleColorHex, reticleOpacity);
+      await canvas.drawLine2d(reticle.x + size/4, reticle.y, reticle.x + size/2, reticle.y, reticleLineWidth, reticleColorHex, reticleOpacity);
+      await canvas.drawLine2d(reticle.x, reticle.y - size/2, reticle.x, reticle.y - size/4, reticleLineWidth, reticleColorHex, reticleOpacity);
+      await canvas.drawLine2d(reticle.x, reticle.y + size/4, reticle.x, reticle.y + size/2, reticleLineWidth, reticleColorHex, reticleOpacity);
       
-      // Draw circle
-      ctx.beginPath();
-      ctx.arc(reticle.x, reticle.y, size/3, 0, Math.PI * 2);
-      ctx.stroke();
+      // Draw circle using drawRing2d
+      await canvas.drawRing2d(reticle.x, reticle.y, size/3, reticleColorHex, reticleOpacity);
       
       // Add lock indicator
       if (reticle.isLocked) {
-        ctx.fillStyle = `rgba(${reticleRgb.r}, ${reticleRgb.g}, ${reticleRgb.b}, 0.3)`;
-        ctx.fill();
-        
         // Draw corner brackets
         const bracketSize = size / 6;
-        ctx.beginPath();
+        const bracketLineWidth = 2;
+        
         // Top-left
-        ctx.moveTo(reticle.x - size/2, reticle.y - size/2 + bracketSize);
-        ctx.lineTo(reticle.x - size/2, reticle.y - size/2);
-        ctx.lineTo(reticle.x - size/2 + bracketSize, reticle.y - size/2);
+        await canvas.drawLine2d(reticle.x - size/2, reticle.y - size/2 + bracketSize, reticle.x - size/2, reticle.y - size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
+        await canvas.drawLine2d(reticle.x - size/2, reticle.y - size/2, reticle.x - size/2 + bracketSize, reticle.y - size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
+        
         // Top-right
-        ctx.moveTo(reticle.x + size/2 - bracketSize, reticle.y - size/2);
-        ctx.lineTo(reticle.x + size/2, reticle.y - size/2);
-        ctx.lineTo(reticle.x + size/2, reticle.y - size/2 + bracketSize);
+        await canvas.drawLine2d(reticle.x + size/2 - bracketSize, reticle.y - size/2, reticle.x + size/2, reticle.y - size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
+        await canvas.drawLine2d(reticle.x + size/2, reticle.y - size/2, reticle.x + size/2, reticle.y - size/2 + bracketSize, bracketLineWidth, reticleColorHex, reticleOpacity);
+        
         // Bottom-right
-        ctx.moveTo(reticle.x + size/2, reticle.y + size/2 - bracketSize);
-        ctx.lineTo(reticle.x + size/2, reticle.y + size/2);
-        ctx.lineTo(reticle.x + size/2 - bracketSize, reticle.y + size/2);
+        await canvas.drawLine2d(reticle.x + size/2, reticle.y + size/2 - bracketSize, reticle.x + size/2, reticle.y + size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
+        await canvas.drawLine2d(reticle.x + size/2, reticle.y + size/2, reticle.x + size/2 - bracketSize, reticle.y + size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
+        
         // Bottom-left
-        ctx.moveTo(reticle.x - size/2 + bracketSize, reticle.y + size/2);
-        ctx.lineTo(reticle.x - size/2, reticle.y + size/2);
-        ctx.lineTo(reticle.x - size/2, reticle.y + size/2 - bracketSize);
-        ctx.stroke();
+        await canvas.drawLine2d(reticle.x - size/2 + bracketSize, reticle.y + size/2, reticle.x - size/2, reticle.y + size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
+        await canvas.drawLine2d(reticle.x - size/2, reticle.y + size/2, reticle.x - size/2, reticle.y + size/2 - bracketSize, bracketLineWidth, reticleColorHex, reticleOpacity);
       }
     }
     
-    // Apply glitch effect
-    const glitchData = ctx.getImageData(0, 0, width, height);
-    this.#applyGlitch(glitchData, t);
-    ctx.putImageData(glitchData, 0, 0);
+    // Convert canvas to layer using Canvas2dFactory
+    let resultLayer = await canvas.convertToLayer();
     
-    // Add data stream overlay
-    if (this.config.showDataStream) {
-      const dataRgb = hexToRgb(this.config.dataColor);
-      ctx.fillStyle = `rgba(${dataRgb.r}, ${dataRgb.g}, ${dataRgb.b}, ${this.config.dataOpacity})`;
-      ctx.font = '10px monospace';
-      
-      const scrollOffset = (t * this.config.dataScrollSpeed * 100) % 100;
-      const dataLines = [
-        `FRAME: ${frameNumber.toString().padStart(4, '0')}`,
-        `SCAN: ${(t * 100).toFixed(1)}%`,
-        `GRID: ${this.config.gridMode.toUpperCase()}`,
-        `PULSE: ${this.config.pulseMode.toUpperCase()}`,
-        `TARGETS: ${this.config.reticleCount}`,
-        `STATUS: ACTIVE`,
-        `0x${Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0').toUpperCase()}`,
-        `0x${Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0').toUpperCase()}`,
-      ];
-      
-      dataLines.forEach((line, i) => {
-        const y = 20 + i * 12 - scrollOffset;
-        if (y > 0 && y < height) {
-          ctx.fillText(line, 10, y);
-        }
-      });
-    }
+    // Apply opacity
+    await resultLayer.adjustLayerOpacity(this.config.layerOpacity);
     
-    // Convert canvas to buffer
-    const outputBuffer = canvas.toBuffer('image/png');
+    // Composite over original layer
+    await layer.compositeLayerOver(resultLayer);
     
-    // Create final layer with opacity
-    const finalImage = await sharp(outputBuffer)
-      .ensureAlpha(this.config.preserveAlpha ? 1 : 0)
-      .toBuffer();
-    
-    return {
-      buffer: finalImage,
-      opacity: this.config.layerOpacity,
-      name: layer.name || 'tactical-pulse-grid'
-    };
+    return layer;
   }
 }

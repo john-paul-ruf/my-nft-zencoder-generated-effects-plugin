@@ -3,8 +3,8 @@
 
 import { LayerEffect } from 'my-nft-gen/src/core/layer/LayerEffect.js';
 import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
+import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
 import sharp from 'sharp';
-import { createCanvas } from 'canvas';
 
 // ========== UTILITY FUNCTIONS ==========
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -297,52 +297,58 @@ class RibbonRenderer {
     };
   }
 
-  renderRibbon(ctx, ribbonIndex, t, width, height) {
+  async renderRibbon(canvas, ribbonIndex, t, width, height) {
     const phaseOffset = ribbonIndex * this.config.wavePhaseShift;
     const ribbonY = this.calculateRibbonY(t, phaseOffset, height);
     const ribbonWidth = width * this.config.ribbonWidth;
     
-    // Create gradient for ribbon
-    const gradient = this.createRibbonGradient(ctx, ribbonY, ribbonWidth, t, ribbonIndex);
+    // Calculate color for this ribbon
+    const colorPhase = (t * this.config.colorShiftSpeed + ribbonIndex * 0.2) % 1.0;
+    const color1 = this.blendColors(this.colors.primary, this.colors.secondary, colorPhase);
+    const color2 = this.blendColors(this.colors.secondary, this.colors.tertiary, colorPhase);
     
-    ctx.save();
-    ctx.globalAlpha = 0.8;
-    ctx.fillStyle = gradient;
+    // Apply saturation boost
+    const boostedColor1 = this.boostSaturation(color1);
+    const boostedColor2 = this.boostSaturation(color2);
     
-    // Draw ribbon path with wave distortion
-    ctx.beginPath();
+    // Build ribbon path (top edge)
+    const ribbonPath = [];
     
     for (let x = 0; x <= width; x += 5) {
       const waveY = this.calculateWaveY(x, t, phaseOffset, width, ribbonY);
       const turbulence = this.calculateTurbulence(x, waveY, t);
       const y = waveY + turbulence;
-      
-      if (x === 0) {
-        ctx.moveTo(x, y - ribbonWidth / 2);
-      } else {
-        ctx.lineTo(x, y - ribbonWidth / 2);
-      }
+      ribbonPath.push({ x, y: y - ribbonWidth / 2 });
     }
     
-    // Complete the ribbon shape
+    // Add bottom edge in reverse
     for (let x = width; x >= 0; x -= 5) {
       const waveY = this.calculateWaveY(x, t, phaseOffset, width, ribbonY);
       const turbulence = this.calculateTurbulence(x, waveY, t);
       const y = waveY + turbulence;
-      ctx.lineTo(x, y + ribbonWidth / 2);
+      ribbonPath.push({ x, y: y + ribbonWidth / 2 });
     }
     
-    ctx.closePath();
-    ctx.fill();
+    // Convert RGB to hex color string
+    const c1r = Math.max(0, Math.min(255, Math.floor(boostedColor1.r || 0)));
+    const c1g = Math.max(0, Math.min(255, Math.floor(boostedColor1.g || 0)));
+    const c1b = Math.max(0, Math.min(255, Math.floor(boostedColor1.b || 0)));
+    const c2r = Math.max(0, Math.min(255, Math.floor(boostedColor2.r || 0)));
+    const c2g = Math.max(0, Math.min(255, Math.floor(boostedColor2.g || 0)));
+    const c2b = Math.max(0, Math.min(255, Math.floor(boostedColor2.b || 0)));
     
-    // Add glow effect
+    const color1Hex = `#${c1r.toString(16).padStart(2, '0')}${c1g.toString(16).padStart(2, '0')}${c1b.toString(16).padStart(2, '0')}`;
+    const color2Hex = `#${c2r.toString(16).padStart(2, '0')}${c2g.toString(16).padStart(2, '0')}${c2b.toString(16).padStart(2, '0')}`;
+    
+    // Draw ribbon with blend of colors for gradient effect
+    await canvas.drawPath(ribbonPath, 2, color1Hex, 0.4, color2Hex);
+    
+    // Add glow effect with multiple passes
     if (this.config.glowIntensity > 0) {
-      ctx.shadowColor = gradient;
-      ctx.shadowBlur = this.config.blurRadius * this.config.glowIntensity;
-      ctx.fill();
+      const glowStrength = 0.2 * this.config.glowIntensity;
+      await canvas.drawPath(ribbonPath, 4, color2Hex, glowStrength, null);
+      await canvas.drawPath(ribbonPath, 8, color1Hex, glowStrength * 0.5, null);
     }
-    
-    ctx.restore();
   }
 
   calculateRibbonY(t, phaseOffset, height) {
@@ -381,35 +387,6 @@ class RibbonRenderer {
     const turb3 = Math.sin((x + y) * 0.015 + t * 20) * 2;
     
     return (turb1 + turb2 + turb3) * this.config.turbulenceStrength;
-  }
-
-  createRibbonGradient(ctx, y, width, t, ribbonIndex) {
-    const gradient = ctx.createLinearGradient(0, y - width/2, 0, y + width/2);
-    
-    // Calculate color shift
-    const colorPhase = (t * this.config.colorShiftSpeed + ribbonIndex * 0.2) % 1.0;
-    const color1 = this.blendColors(this.colors.primary, this.colors.secondary, colorPhase);
-    const color2 = this.blendColors(this.colors.secondary, this.colors.tertiary, colorPhase);
-    
-    // Apply saturation boost
-    const boostedColor1 = this.boostSaturation(color1);
-    const boostedColor2 = this.boostSaturation(color2);
-    
-    // Ensure colors are valid numbers (clamp to 0-255 range)
-    const c1r = Math.max(0, Math.min(255, Math.floor(boostedColor1.r || 0)));
-    const c1g = Math.max(0, Math.min(255, Math.floor(boostedColor1.g || 0)));
-    const c1b = Math.max(0, Math.min(255, Math.floor(boostedColor1.b || 0)));
-    const c2r = Math.max(0, Math.min(255, Math.floor(boostedColor2.r || 0)));
-    const c2g = Math.max(0, Math.min(255, Math.floor(boostedColor2.g || 0)));
-    const c2b = Math.max(0, Math.min(255, Math.floor(boostedColor2.b || 0)));
-    
-    gradient.addColorStop(0, `rgba(${c1r}, ${c1g}, ${c1b}, 0)`);
-    gradient.addColorStop(0.3, `rgba(${c1r}, ${c1g}, ${c1b}, 0.4)`);
-    gradient.addColorStop(0.5, `rgba(${c2r}, ${c2g}, ${c2b}, 0.8)`);
-    gradient.addColorStop(0.7, `rgba(${c1r}, ${c1g}, ${c1b}, 0.4)`);
-    gradient.addColorStop(1, `rgba(${c1r}, ${c1g}, ${c1b}, 0)`);
-    
-    return gradient;
   }
 
   blendColors(color1, color2, t) {
@@ -473,10 +450,8 @@ class ParticleSystem {
     return particles;
   }
 
-  renderParticles(ctx, t, width, height) {
-    ctx.save();
-    
-    this.particles.forEach(particle => {
+  async renderParticles(canvas, t, width, height) {
+    for (const particle of this.particles) {
       const x = particle.baseX * width;
       const y = (particle.baseY + t * particle.speed) % 1.0 * height;
       
@@ -489,39 +464,57 @@ class ParticleSystem {
       const shimmer = Math.sin(t * this.config.shimmerSpeed * Math.PI * 2 + particle.phase);
       const opacity = 0.3 + shimmer * 0.7;
       
-      // Draw particle
-      ctx.globalAlpha = opacity;
-      ctx.fillStyle = '#FFFFFF';
-      
-      if (this.config.particleGlow) {
-        ctx.shadowColor = '#FFFFFF';
-        ctx.shadowBlur = particle.size * 2;
-      }
-      
-      ctx.beginPath();
-      ctx.arc(finalX, finalY, particle.size, 0, Math.PI * 2);
-      ctx.fill();
-      
       // Draw trail if enabled
       if (this.config.particleTrailLength > 0) {
         const trailLength = height * this.config.particleTrailLength;
-        const gradient = ctx.createLinearGradient(
-          finalX, finalY,
-          finalX, finalY - trailLength
-        );
-        gradient.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
-        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        const trailStartOpacity = opacity * 0.8;
+        const trailEndOpacity = opacity * 0.1;
         
-        ctx.strokeStyle = gradient;
-        ctx.lineWidth = particle.size * 0.5;
-        ctx.beginPath();
-        ctx.moveTo(finalX, finalY);
-        ctx.lineTo(finalX, finalY - trailLength);
-        ctx.stroke();
+        // Draw trail as a line with fading effect using multiple passes
+        await canvas.drawLine2d(
+          { x: finalX, y: finalY },
+          { x: finalX, y: finalY - trailLength },
+          particle.size * 0.5,
+          '#FFFFFF',
+          trailStartOpacity,
+          null,
+          1.0
+        );
       }
-    });
-    
-    ctx.restore();
+      
+      // Draw glow if enabled
+      if (this.config.particleGlow && particle.size > 0) {
+        // Draw glow rings
+        const glowColor = '#FFFFFF';
+        const glowAlpha = opacity * 0.3;
+        await canvas.drawRing2d(
+          { x: finalX, y: finalY },
+          particle.size * 1.5,
+          1.5,
+          glowColor,
+          glowAlpha,
+          null
+        );
+        await canvas.drawRing2d(
+          { x: finalX, y: finalY },
+          particle.size * 2.5,
+          1,
+          glowColor,
+          glowAlpha * 0.5,
+          null
+        );
+      }
+      
+      // Draw main particle
+      await canvas.drawRing2d(
+        { x: finalX, y: finalY },
+        particle.size,
+        particle.size,
+        '#FFFFFF',
+        opacity,
+        '#FFFFFF'
+      );
+    }
   }
 
   calculateFieldDistortion(x, y, t) {
@@ -646,18 +639,18 @@ export class AuroraCascadeEffect extends LayerEffect {
       return layer;
     }
 
-    const { t } = timeInfo;
-    
+    const {t} = timeInfo;
+
     // Get layer buffer
     const layerBuffer = await layer.toBuffer();
     const inputMetadata = await sharp(layerBuffer).metadata();
-    
+
     // Ensure dimensions are set (lazy initialization for secondary effects)
     if (!this.width || !this.height) {
       this.width = inputMetadata.width || 1024;
       this.height = inputMetadata.height || 1024;
     }
-    
+
     // Ensure config exists and is properly hydrated (for deserialization)
     let configWasHydrated = false;
     if (!this.config) {
@@ -668,23 +661,23 @@ export class AuroraCascadeEffect extends LayerEffect {
       this.config = new AuroraCascadeConfig(this.config);
       configWasHydrated = true;
     }
-    
+
     // Ensure schedule is initialized (lazy initialization for secondary effects)
     if (!this.schedule) {
-      const keyFrames = Array.isArray(this.config.keyFrames) 
-        ? this.config.keyFrames.slice().sort((a, b) => a - b) 
-        : [];
+      const keyFrames = Array.isArray(this.config.keyFrames)
+          ? this.config.keyFrames.slice().sort((a, b) => a - b)
+          : [];
       const [minLen, maxLen] = Array.isArray(this.config.cascadeDuration) && this.config.cascadeDuration.length === 2
-        ? this.config.cascadeDuration
-        : [30, 60];
-      
+          ? this.config.cascadeDuration
+          : [30, 60];
+
       this.schedule = keyFrames.map((start, i) => {
         const u = hash2(this.config.seed, i);
         const duration = minLen + Math.floor(u * (maxLen - minLen + 1));
-        return { start, duration };
+        return {start, duration};
       });
     }
-    
+
     // Ensure cycles are initialized (lazy initialization for secondary effects)
     if (!this.flowCycles) {
       this.flowCycles = Math.max(1, Math.round(this.config.flowSpeed));
@@ -692,7 +685,7 @@ export class AuroraCascadeEffect extends LayerEffect {
       this.colorCycles = Math.max(1, Math.round(this.config.colorShiftSpeed));
       this.shimmerCycles = Math.max(1, Math.round(this.config.shimmerSpeed));
     }
-    
+
     // Ensure renderers are initialized (lazy initialization for secondary effects)
     // If config was hydrated, recreate renderers to use the proper config instance
     if (!this.ribbonRenderer || configWasHydrated) {
@@ -701,102 +694,41 @@ export class AuroraCascadeEffect extends LayerEffect {
     if (!this.particleSystem || configWasHydrated) {
       this.particleSystem = new ParticleSystem(this.config, this.config.seed);
     }
-    
-    // Create canvas for effect rendering
-    const canvas = createCanvas(this.width, this.height);
-    const ctx = canvas.getContext('2d');
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, this.width, this.height);
-    
+
+    // Create canvas for effect rendering using Canvas2dFactory
+    const canvas = await Canvas2dFactory.getNewCanvas(this.width, this.height);
+
     // Calculate animation phases for perfect loops
     const flowPhase = (t * this.flowCycles) % 1.0;
     const wavePhase = (t * this.waveCycles) % 1.0;
     const colorPhase = (t * this.colorCycles) % 1.0;
     const shimmerPhase = (t * this.shimmerCycles) % 1.0;
-    
-    // Set up blend mode
-    ctx.globalCompositeOperation = this.config.blendMode === 'additive' ? 'lighter' : 
-                                   this.config.blendMode === 'overlay' ? 'overlay' : 'screen';
-    
+
     // Render ribbons
     for (let i = 0; i < this.config.ribbonCount; i++) {
-      this.ribbonRenderer.renderRibbon(ctx, i, flowPhase, this.width, this.height);
-    }
-    
-    // Render particles
-    if (this.config.particleDensity > 0) {
-      this.particleSystem.renderParticles(ctx, flowPhase, this.width, this.height);
-    }
-    
-    // Apply edge fade
-    if (this.config.fadeEdges > 0) {
-      this.#applyEdgeFade(ctx);
-    }
-    
-    // Convert canvas to buffer
-    const effectBuffer = canvas.toBuffer('image/png');
-    
-    // Composite effect over original layer
-    let composite;
-    
-    if (this.config.preserveAlpha && inputMetadata.hasAlpha) {
-      // Extract alpha from original
-      const alphaBuffer = await sharp(layerBuffer)
-        .extractChannel('alpha')
-        .toBuffer();
-      
-      // Apply effect
-      const effectWithAlpha = await sharp(effectBuffer)
-        .resize(inputMetadata.width, inputMetadata.height, { fit: 'fill' })
-        .composite([{
-          input: await sharp(layerBuffer).toBuffer(),
-          blend: 'dest-in'
-        }])
-        .toBuffer();
-      
-      // Blend with original
-      composite = await sharp(layerBuffer)
-        .composite([{
-          input: effectWithAlpha,
-          blend: this.config.blendMode === 'additive' ? 'add' : 
-                 this.config.blendMode === 'overlay' ? 'overlay' : 'screen',
-          opacity: this.config.layerOpacity
-        }])
-        .toBuffer();
-    } else {
-      // Simple composite
-      composite = await sharp(layerBuffer)
-        .composite([{
-          input: effectBuffer,
-          blend: this.config.blendMode === 'additive' ? 'add' : 
-                 this.config.blendMode === 'overlay' ? 'overlay' : 'screen',
-          opacity: this.config.layerOpacity
-        }])
-        .toBuffer();
+      await this.ribbonRenderer.renderRibbon(canvas, i, flowPhase, this.width, this.height);
     }
 
-    // Update layer with composited result
-    await layer.fromBuffer(composite);
+    // Render particles
+    if (this.config.particleDensity > 0) {
+      await this.particleSystem.renderParticles(canvas, flowPhase, this.width, this.height);
+    }
+
+    // Convert canvas to layer using Canvas2dFactory
+    let resultLayer = await canvas.convertToLayer();
+
+    // Apply blur if configured
+    if (this.config.blurRadius > 0) {
+      await resultLayer.blur(this.config.blurRadius);
+    }
+
+    // Apply opacity settings
+    await resultLayer.adjustLayerOpacity(this.config.layerOpacity);
+
+    // Composite over original layer
+    await layer.compositeLayerOver(resultLayer);
+
     return layer;
-  }
-  
-  #applyEdgeFade(ctx) {
-    const fadeSize = this.config.fadeEdges * Math.min(this.width, this.height);
-    
-    // Create edge gradient
-    const gradient = ctx.createRadialGradient(
-      this.width / 2, this.height / 2, Math.min(this.width, this.height) / 2 - fadeSize,
-      this.width / 2, this.height / 2, Math.min(this.width, this.height) / 2
-    );
-    
-    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 1)');
-    
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, this.width, this.height);
-    ctx.globalCompositeOperation = 'source-over';
   }
 }
 

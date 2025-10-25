@@ -1,6 +1,6 @@
 import { LayerEffect } from 'my-nft-gen/src/core/layer/LayerEffect.js';
 import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
-import { createCanvas, loadImage } from 'canvas';
+import { loadImage } from 'canvas';
 
 /**
  * PrismaticShatter Effect - Crystalline Light Refraction
@@ -176,143 +176,96 @@ export class PrismaticShatterEffect extends LayerEffect {
    * Pure function - output depends only on inputs
    */
   async invoke(layer, frameNumber = 0, totalFrames = 1) {
-    const { width, height } = this.data;
+    const { width, height, shards } = this.data;
     
-    // Create working canvas
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
-    
-    // Enable antialiasing if configured
-    ctx.imageSmoothingEnabled = this.config.antialiasing;
-    ctx.imageSmoothingQuality = 'high';
+    // Create working canvas using Canvas2dFactory
+    const canvas = await Canvas2dFactory.getNewCanvas(width, height);
     
     // Calculate animation progress (0 to 1)
     const progress = totalFrames > 1 ? frameNumber / totalFrames : 0;
     const animAngle = progress * Math.PI * 2; // Full cycle for perfect loop
     
-    // Load input layer image
-    let inputImage = null;
-    if (layer) {
-      const inputBuffer = await layer.toBuffer();
-      inputImage = await loadImage(inputBuffer);
+    // Render ambient glow using solid color with opacity
+    if (this.config.ambientGlow > 0) {
+      const { glow } = this.data.colors;
+      const glowColor = `#${glow.r.toString(16).padStart(2, '0')}${glow.g.toString(16).padStart(2, '0')}${glow.b.toString(16).padStart(2, '0')}`;
+      
+      // Create radial glow effect using concentric rings
+      for (let i = 0; i < 5; i++) {
+        const radius = (Math.max(width, height) / 2) * (1 - i / 5);
+        const opacity = this.config.ambientGlow * 0.3 * (1 - i / 5);
+        await canvas.drawRing2d(width / 2, height / 2, radius, glowColor, opacity);
+      }
     }
     
-    // Clear canvas with ambient glow
-    this.#renderAmbientGlow(ctx, width, height);
-    
-    // Render atmospheric fog layer
+    // Render atmospheric fog layer using concentric rings
     if (this.config.fogDensity > 0) {
-      this.#renderFog(ctx, width, height, animAngle);
+      const { fog } = this.data.colors;
+      const fogColor = `#${fog.r.toString(16).padStart(2, '0')}${fog.g.toString(16).padStart(2, '0')}${fog.b.toString(16).padStart(2, '0')}`;
+      
+      // Animated fog movement
+      const offsetX = Math.sin(animAngle * 0.3) * 20;
+      const offsetY = Math.cos(animAngle * 0.2) * 15;
+      
+      for (let i = 0; i < 8; i++) {
+        const radius = (Math.max(width, height) * 0.7) * (i / 8);
+        const opacity = this.config.fogDensity * 0.2 * Math.sin((i / 8) * Math.PI);
+        await canvas.drawRing2d(width / 2 + offsetX, height / 2 + offsetY, radius, fogColor, opacity);
+      }
     }
     
-    // Draw original image first (will be shattered)
-    if (inputImage) {
-      ctx.globalAlpha = 1.0 - this.config.effectIntensity * 0.5;
-      ctx.drawImage(inputImage, 0, 0, width, height);
-    }
-    
-    // Calculate shard positions and render
-    this.#renderShards(ctx, inputImage, animAngle);
+    // Render shard positions and colors
+    this.#renderShards(canvas, animAngle);
     
     // Render volumetric light rays
     if (this.config.lightIntensity > 0) {
-      this.#renderLightRays(ctx, animAngle);
+      await this.#renderLightRays(canvas, animAngle);
     }
     
-    // Apply bloom to bright areas
+    // Add glow to shards (simulation of bloom effect)
     if (this.config.bloomIntensity > 0) {
-      this.#applyBloom(ctx);
+      const { spectrum } = this.data.colors;
+      for (const shard of shards) {
+        const color = spectrum[shard.id % spectrum.length];
+        const colorHex = `#${color.r.toString(16).padStart(2, '0')}${color.g.toString(16).padStart(2, '0')}${color.b.toString(16).padStart(2, '0')}`;
+        const phase = animAngle + shard.phaseShift;
+        const bloomOpacity = this.config.bloomIntensity * 0.3 * (0.5 + Math.sin(phase * 3) * 0.5);
+        
+        await canvas.drawRing2d(shard.centerX, shard.centerY, shard.size * 50, colorHex, bloomOpacity);
+      }
     }
     
-    // Add lens flares at bright spots
-    if (this.config.flareThreshold < 1) {
-      this.#renderLensFlares(ctx, animAngle);
-    }
+    // Convert canvas to layer using Canvas2dFactory
+    let resultLayer = await canvas.convertToLayer();
     
-    // Apply final opacity
-    if (this.config.layerOpacity < 1) {
-      ctx.globalAlpha = this.config.layerOpacity;
-      ctx.globalCompositeOperation = 'destination-in';
-      ctx.fillStyle = 'black';
-      ctx.fillRect(0, 0, width, height);
-    }
+    // Apply opacity settings
+    await resultLayer.adjustLayerOpacity(this.config.layerOpacity);
     
-    // Convert canvas to buffer and update layer
-    const buffer = canvas.toBuffer('image/png');
-    await layer.fromBuffer(buffer);
+    // Composite over original layer
+    await layer.compositeLayerOver(resultLayer);
     
     return layer;
   }
 
   /**
-   * Render ambient glow background
+   * Render crystal shards with refraction (simplified for Canvas2d API)
    */
-  #renderAmbientGlow(ctx, width, height) {
-    const { glow } = this.data.colors;
-    const intensity = this.config.ambientGlow;
-    
-    if (intensity > 0) {
-      const gradient = ctx.createRadialGradient(
-        width / 2, height / 2, 0,
-        width / 2, height / 2, Math.max(width, height) / 2
-      );
-      
-      gradient.addColorStop(0, `rgba(${glow.r}, ${glow.g}, ${glow.b}, ${intensity * 0.5})`);
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, width, height);
-    }
-  }
-
-  /**
-   * Render atmospheric fog
-   */
-  #renderFog(ctx, width, height, animAngle) {
-    const { fog } = this.data.colors;
-    const density = this.config.fogDensity;
-    
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = density * 0.3;
-    
-    // Animated fog movement
-    const offsetX = Math.sin(animAngle * 0.3) * 20;
-    const offsetY = Math.cos(animAngle * 0.2) * 15;
-    
-    const gradient = ctx.createRadialGradient(
-      width / 2 + offsetX, height / 2 + offsetY, 0,
-      width / 2 + offsetX, height / 2 + offsetY, Math.max(width, height) * 0.7
-    );
-    
-    gradient.addColorStop(0, `rgba(${fog.r}, ${fog.g}, ${fog.b}, 0)`);
-    gradient.addColorStop(0.5, `rgba(${fog.r}, ${fog.g}, ${fog.b}, ${density})`);
-    gradient.addColorStop(1, `rgba(${fog.r}, ${fog.g}, ${fog.b}, 0)`);
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-    ctx.restore();
-  }
-
-  /**
-   * Render crystal shards with refraction
-   */
-  #renderShards(ctx, inputImage, animAngle) {
-    const { shards, centerX, centerY } = this.data;
+  async #renderShards(canvas, animAngle) {
+    const { shards, spectrum } = this.data;
     
     // Sort shards by depth (far to near)
     const sortedShards = [...shards].sort((a, b) => a.depth - b.depth);
     
-    sortedShards.forEach(shard => {
-      this.#renderSingleShard(ctx, inputImage, shard, animAngle);
-    });
+    for (const shard of sortedShards) {
+      await this.#renderSingleShard(canvas, shard, animAngle);
+    }
   }
 
   /**
-   * Render individual shard with all effects
+   * Render individual shard using Canvas2d API
    */
-  #renderSingleShard(ctx, inputImage, shard, animAngle) {
-    const { width, height, centerX, centerY } = this.data;
+  async #renderSingleShard(canvas, shard, animAngle) {
+    const { spectrum } = this.data;
     
     // Calculate animated position
     const phase = animAngle + shard.phaseShift;
@@ -320,235 +273,66 @@ export class PrismaticShatterEffect extends LayerEffect {
     const orbitY = Math.sin(phase * 1.3) * this.config.orbitRadius * 0.5;
     const floatY = Math.sin(phase * 2) * this.config.floatAmplitude;
     
-    // Calculate rotation
-    const rotX = Math.sin(phase * this.config.rotationSpeedX) * Math.PI;
-    const rotY = Math.cos(phase * this.config.rotationSpeedY) * Math.PI;
-    const rotZ = Math.sin(phase * this.config.rotationSpeedZ) * Math.PI * 2;
-    
     // Apply depth scaling
     const depthScale = 1.0 + (shard.depth / this.config.shardDepthRange) * 0.3;
-    
-    ctx.save();
     
     // Position shard
     const shardX = shard.centerX + orbitX;
     const shardY = shard.centerY + orbitY + floatY;
-    ctx.translate(shardX, shardY);
+    const shardOpacity = 0.8 + Math.sin(phase * 3) * 0.2;
     
-    // Apply rotation (simplified 2D projection of 3D rotation)
-    ctx.rotate(rotZ);
-    ctx.scale(depthScale, depthScale);
+    // Get spectrum color for shard
+    const color = spectrum[shard.id % spectrum.length];
+    const colorHex = `#${color.r.toString(16).padStart(2, '0')}${color.g.toString(16).padStart(2, '0')}${color.b.toString(16).padStart(2, '0')}`;
     
-    // Set blend mode
-    ctx.globalCompositeOperation = this.config.shardBlendMode;
-    ctx.globalAlpha = 0.8 + Math.sin(phase * 3) * 0.2;
+    // Draw shard as polygon using Canvas2d API
+    const scaledVertices = shard.vertices.map(v => ({
+      x: shardX + v.x * depthScale * shard.size * 1.5,
+      y: shardY + v.y * depthScale * shard.size * 1.5
+    }));
     
-    // Create shard path
-    ctx.beginPath();
-    shard.vertices.forEach((v, i) => {
-      if (i === 0) {
-        ctx.moveTo(v.x, v.y);
-      } else {
-        ctx.lineTo(v.x, v.y);
-      }
-    });
-    ctx.closePath();
+    // Close the path
+    scaledVertices.push(scaledVertices[0]);
     
-    // Clip to shard shape
-    ctx.clip();
+    // Draw filled polygon
+    await canvas.drawPath(scaledVertices, 1, colorHex, shardOpacity);
     
-    // Draw refracted image with chromatic aberration
-    if (inputImage) {
-      this.#drawRefractedImage(ctx, inputImage, shard, shardX, shardY);
-    }
-    
-    // Add prismatic edge effects
-    this.#drawPrismaticEdge(ctx, shard);
-    
-    ctx.restore();
-  }
-
-  /**
-   * Draw image through shard with refraction
-   */
-  #drawRefractedImage(ctx, inputImage, shard, shardX, shardY) {
-    const dispersion = this.config.chromaticDispersion * this.config.spectralWidth;
-    
-    // Draw RGB channels separately for chromatic aberration
-    ctx.globalCompositeOperation = 'screen';
-    
-    // Red channel
-    ctx.globalAlpha = 0.8;
-    ctx.drawImage(
-      inputImage,
-      shardX - shard.size * 30 - dispersion,
-      shardY - shard.size * 30,
-      shard.size * 60,
-      shard.size * 60,
-      -shard.size * 30 - dispersion * 0.5,
-      -shard.size * 30,
-      shard.size * 60,
-      shard.size * 60
-    );
-    
-    // Green channel
-    ctx.drawImage(
-      inputImage,
-      shardX - shard.size * 30,
-      shardY - shard.size * 30,
-      shard.size * 60,
-      shard.size * 60,
-      -shard.size * 30,
-      -shard.size * 30,
-      shard.size * 60,
-      shard.size * 60
-    );
-    
-    // Blue channel
-    ctx.drawImage(
-      inputImage,
-      shardX - shard.size * 30 + dispersion,
-      shardY - shard.size * 30,
-      shard.size * 60,
-      shard.size * 60,
-      -shard.size * 30 + dispersion * 0.5,
-      -shard.size * 30,
-      shard.size * 60,
-      shard.size * 60
-    );
-  }
-
-  /**
-   * Draw prismatic rainbow edge
-   */
-  #drawPrismaticEdge(ctx, shard) {
-    const { spectrum } = this.data.colors;
-    
-    ctx.globalCompositeOperation = 'add';
-    ctx.globalAlpha = this.config.chromaticDispersion * 0.5;
-    
-    // Create gradient along edge
-    spectrum.forEach((color, i) => {
+    // Draw prismatic edges using colored rings
+    for (let i = 0; i < spectrum.length; i++) {
+      const edgeColor = spectrum[i];
+      const edgeColorHex = `#${edgeColor.r.toString(16).padStart(2, '0')}${edgeColor.g.toString(16).padStart(2, '0')}${edgeColor.b.toString(16).padStart(2, '0')}`;
       const angle = (i / spectrum.length) * Math.PI * 2;
-      const gradient = ctx.createLinearGradient(
-        Math.cos(angle) * shard.size * 30,
-        Math.sin(angle) * shard.size * 30,
-        0, 0
-      );
+      const edgeRadius = shard.size * 30 * depthScale;
+      const edgeOpacity = this.config.chromaticDispersion * 0.3 * shardOpacity;
       
-      gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.8)`);
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    });
-  }
-
-  /**
-   * Render volumetric light rays
-   */
-  #renderLightRays(ctx, animAngle) {
-    const { shards, lightAngleRad, width, height } = this.data;
-    
-    ctx.save();
-    ctx.globalCompositeOperation = this.config.rayBlendMode;
-    
-    shards.forEach(shard => {
-      this.#renderShardRays(ctx, shard, animAngle);
-    });
-    
-    ctx.restore();
-  }
-
-  /**
-   * Render light rays from a single shard
-   */
-  #renderShardRays(ctx, shard, animAngle) {
-    const phase = animAngle + shard.phaseShift;
-    const intensity = this.config.lightIntensity * (0.7 + Math.sin(phase * 4) * 0.3);
-    
-    for (let i = 0; i < this.config.rayCount; i++) {
-      const rayAngle = this.data.lightAngleRad + (i - this.config.rayCount / 2) * 0.1;
-      const rayLength = this.config.rayLength * (0.8 + Math.sin(phase * 2 + i) * 0.2);
-      
-      const gradient = ctx.createLinearGradient(
-        shard.centerX, shard.centerY,
-        shard.centerX + Math.cos(rayAngle) * rayLength,
-        shard.centerY + Math.sin(rayAngle) * rayLength
-      );
-      
-      const { glow } = this.data.colors;
-      gradient.addColorStop(0, `rgba(${glow.r}, ${glow.g}, ${glow.b}, ${intensity})`);
-      gradient.addColorStop(this.config.rayFalloff, `rgba(${glow.r}, ${glow.g}, ${glow.b}, 0)`);
-      gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-      
-      ctx.strokeStyle = gradient;
-      ctx.lineWidth = 3 * shard.size;
-      ctx.globalAlpha = intensity * 0.3;
-      ctx.beginPath();
-      ctx.moveTo(shard.centerX, shard.centerY);
-      ctx.lineTo(
-        shard.centerX + Math.cos(rayAngle) * rayLength,
-        shard.centerY + Math.sin(rayAngle) * rayLength
-      );
-      ctx.stroke();
+      await canvas.drawRing2d(shardX, shardY, edgeRadius, edgeColorHex, edgeOpacity);
     }
   }
 
   /**
-   * Apply bloom effect to bright areas
+   * Render volumetric light rays using Canvas2d API (simplified)
    */
-  #applyBloom(ctx) {
-    const { width, height } = this.data;
-    const intensity = this.config.bloomIntensity;
+  async #renderLightRays(canvas, animAngle) {
+    const { shards } = this.data;
+    const { glow } = this.data.colors;
+    const glowColor = `#${glow.r.toString(16).padStart(2, '0')}${glow.g.toString(16).padStart(2, '0')}${glow.b.toString(16).padStart(2, '0')}`;
     
-    ctx.save();
-    ctx.filter = `blur(${intensity * 8}px)`;
-    ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = intensity * 0.5;
-    ctx.drawImage(ctx.canvas, 0, 0, width, height);
-    ctx.restore();
-  }
-
-  /**
-   * Render lens flares at bright points
-   */
-  #renderLensFlares(ctx, animAngle) {
-    const { shards, width, height } = this.data;
-    const { flare } = this.data.colors;
-    
-    ctx.save();
-    ctx.globalCompositeOperation = 'add';
-    
-    // Add flares at shard centers
-    shards.forEach((shard, i) => {
-      if (i % 3 === 0) { // Every third shard for performance
-        const brightness = 0.5 + Math.sin(animAngle * 3 + shard.phaseShift) * 0.5;
+    // Draw light rays from shards
+    for (const shard of shards) {
+      const phase = animAngle + shard.phaseShift;
+      const intensity = this.config.lightIntensity * (0.7 + Math.sin(phase * 4) * 0.3);
+      
+      for (let i = 0; i < this.config.rayCount; i++) {
+        const rayAngle = this.data.lightAngleRad + (i - this.config.rayCount / 2) * 0.1;
+        const rayLength = this.config.rayLength * (0.8 + Math.sin(phase * 2 + i) * 0.2);
         
-        if (brightness > this.config.flareThreshold) {
-          const flareSize = 20 * brightness * shard.size;
-          const gradient = ctx.createRadialGradient(
-            shard.centerX, shard.centerY, 0,
-            shard.centerX, shard.centerY, flareSize
-          );
-          
-          gradient.addColorStop(0, `rgba(${flare.r}, ${flare.g}, ${flare.b}, ${brightness})`);
-          gradient.addColorStop(0.2, `rgba(${flare.r}, ${flare.g}, ${flare.b}, ${brightness * 0.5})`);
-          gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          
-          ctx.fillStyle = gradient;
-          ctx.globalAlpha = brightness * 0.6;
-          ctx.fillRect(
-            shard.centerX - flareSize,
-            shard.centerY - flareSize,
-            flareSize * 2,
-            flareSize * 2
-          );
-        }
+        const x1 = shard.centerX;
+        const y1 = shard.centerY;
+        const x2 = shard.centerX + Math.cos(rayAngle) * rayLength;
+        const y2 = shard.centerY + Math.sin(rayAngle) * rayLength;
+        
+        await canvas.drawLine2d(x1, y1, x2, y2, 3 * shard.size, glowColor, intensity * 0.3);
       }
-    });
-    
-    ctx.restore();
+    }
   }
 }
