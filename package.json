@@ -1,6 +1,6 @@
 {
   "name": "my-nft-zencoder-generated-effects-plugins",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A comprehensive JavaScript plugin library providing advanced visual effects for my-nft-gen, including primary effects, secondary effects, keyframe effects, and final image effects.",
   "main": "plugin.js",
   "type": "module",

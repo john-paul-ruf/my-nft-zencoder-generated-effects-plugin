@@ -15,6 +15,11 @@ import {QuantumFieldConfig} from './QuantumFieldConfig.js';
 
 export class QuantumFieldEffect extends LayerEffect {
     static _name_ = 'quantum-field';
+    static _displayName_ = 'Quantum Field';
+    static _description_ = 'Simulates quantum particle interactions with dynamic connections, tunneling behaviors, and entanglement effects. Features multiple rendering modes with configurable particle physics and perfect loop animation support.';
+    static _version_ = '1.0.0';
+    static _author_ = 'Zencoder';
+    static _tags_ = ['effect', 'particles', 'quantum', 'physics', 'final', 'post-processing', 'psychedelic', 'animated', 'loopable', 'entanglement', 'wave-particle'];
 
     constructor({
                     name = QuantumFieldEffect._name_,
