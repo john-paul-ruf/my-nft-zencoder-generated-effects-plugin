@@ -11,6 +11,11 @@ import { globalBufferPool } from 'my-nft-gen/src/core/pool/BufferPool.js';
  */
 export class ChromaticAberrationEffect extends LayerEffect {
   static _name_ = 'chromatic-aberration';
+  static _displayName_ = 'Chromatic Aberration';
+  static _description_ = 'Layer-based RGB channel separation with radial displacement from configurable focal points. Creates optical lens distortion effects with dreamy, glitchy aesthetics and perfect loop animation support.';
+  static _version_ = '1.0.0';
+  static _author_ = 'Zencoder';
+  static _tags_ = ['effect', 'secondary', 'layer', 'chromatic', 'optical-distortion', 'rgb-separation', 'glitch', 'dreamy', 'animated', 'loopable', 'radial-displacement'];
 
   constructor({
     name = ChromaticAberrationEffect._name_,

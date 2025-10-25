@@ -20,12 +20,12 @@ import { globalBufferPool } from 'my-nft-gen/src/core/pool/BufferPool.js';
  * - Perfect loop - all animations return to origin
  */
 export class ChromaticAberrationEffect extends LayerEffect {
-  static _name_ = 'chromatic-aberration-final-image-effect';
+  static _name_ = 'chromatic-aberration';
   static _displayName_ = 'Chromatic Aberration';
-  static _description_ = 'RGB channel separation with dynamic displacement. The operator in the noise. Perfect loop.';
+  static _description_ = 'RGB channel separation with dynamic displacement creating glitch-art and cyberpunk aesthetics. Features five displacement modes (wave, radial, orbital, pulse, scanline), perfect loop animations, and independent channel control with phase shifting.';
   static _version_ = '1.0.0';
   static _author_ = 'Zencoder';
-  static _tags_ = ['effect', 'final', 'post', 'glitch', 'chromatic', 'cyberpunk', 'animated'];
+  static _tags_ = ['effect', 'final', 'post-processing', 'glitch', 'chromatic', 'cyberpunk', 'vhs', 'signal-interference', 'quantum-superposition', 'animated', 'loopable', 'rgb-separation'];
 
   constructor({ name = ChromaticAberrationEffect._name_, config, settings } = {}) {
     super({ name, config });

@@ -6,6 +6,11 @@ import {globalBufferPool} from 'my-nft-gen/src/core/pool/BufferPool.js';
 
 export class FlowFieldEffect extends LayerEffect {
     static _name_ = 'flow-field';
+    static _displayName_ = 'Flow Field';
+    static _description_ = 'Generates dynamic vector fields that distort image content with fluid, organic motion. Combines turbulence algorithms with configurable flow patterns to create mesmerizing wave and swirl effects.';
+    static _version_ = '1.0.0';
+    static _author_ = 'Zencoder';
+    static _tags_ = ['effect', 'secondary', 'distortion', 'flow', 'vector-field', 'fluid-dynamics', 'turbulence', 'organic', 'animated', 'loopable'];
 
     constructor({
                     name = FlowFieldEffect._name_,
