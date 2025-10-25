@@ -4,6 +4,7 @@
 import { LayerEffect } from 'my-nft-gen/src/core/layer/LayerEffect.js';
 import { EffectConfig } from 'my-nft-gen/src/core/layer/EffectConfig.js';
 import { Canvas2dFactory } from 'my-nft-gen/src/core/factory/canvas/Canvas2dFactory.js';
+import { LayerFactory } from 'my-nft-gen/src/core/factory/layer/LayerFactory.js';
 import sharp from 'sharp';
 
 // ========== UTILITY FUNCTIONS ==========
@@ -231,19 +232,15 @@ export class TacticalPulseGridEffect extends LayerEffect {
   static _tags_ = ['effect', 'keyframe', 'tactical', 'hud', 'pulse', 'grid', 'animated'];
 
   constructor({ name = TacticalPulseGridEffect._name_, config, settings } = {}) {
-    super({ name, config });
-    this.#generate(settings);
-  }
-
-  #generate(settings) {
-    const width = settings?.width || 1024;
-    const height = settings?.height || 1024;
-    
+    super({ name, config, settings });
     // Ensure config exists
     if (!this.config) {
       this.config = new TacticalPulseGridConfig();
     }
-    
+    this.#initializeSchedule();
+  }
+
+  #initializeSchedule() {
     // Parse schedule
     const keyFrames = Array.isArray(this.config.keyFrames) 
       ? this.config.keyFrames.slice().sort((a, b) => a - b) 
@@ -259,9 +256,6 @@ export class TacticalPulseGridEffect extends LayerEffect {
       return { start, duration };
     });
     
-    // Pre-calculate grid positions
-    this.gridPositions = this.#generateGridPositions(width, height);
-    
     // Pre-calculate reticle paths (Lissajous curves)
     this.reticlePaths = [];
     for (let i = 0; i < this.config.reticleCount; i++) {
@@ -276,9 +270,9 @@ export class TacticalPulseGridEffect extends LayerEffect {
     this.scanCycles = Math.max(1, Math.round(this.config.scanRotation));
     this.reticleCycles = Math.max(1, Math.round(this.config.reticleSpeed));
     
-    // Store dimensions
-    this.width = width;
-    this.height = height;
+    // Store dimensions (will be set from invoke or finalSize)
+    this.width = null;
+    this.height = null;
   }
   
   #generateGridPositions(width, height) {
@@ -330,6 +324,10 @@ export class TacticalPulseGridEffect extends LayerEffect {
   
   #getTimeInfo(frameNumber) {
     // Find active window
+    if (!this.schedule || this.schedule.length === 0) {
+      return { active: false };
+    }
+    
     for (const window of this.schedule) {
       const end = window.start + window.duration;
       if (frameNumber >= window.start && frameNumber < end) {
@@ -415,16 +413,16 @@ export class TacticalPulseGridEffect extends LayerEffect {
     return 0;
   }
   
-  #getReticlePosition(index, t) {
+  #getReticlePosition(index, t, width, height) {
     const path = this.reticlePaths[index];
     const phase = t * this.reticleCycles * 2 * Math.PI;
     
     // Lissajous curve
-    const x = this.width * 0.5 + 
-              this.width * this.config.reticleDrift * 
+    const x = width * 0.5 + 
+              width * this.config.reticleDrift * 
               Math.sin(path.freqX * phase + path.phaseShift);
-    const y = this.height * 0.5 + 
-              this.height * this.config.reticleDrift * 
+    const y = height * 0.5 + 
+              height * this.config.reticleDrift * 
               Math.cos(path.freqY * phase);
     
     // Lock-on effect
@@ -474,20 +472,40 @@ export class TacticalPulseGridEffect extends LayerEffect {
   }
   
   async invoke(layer, frameNumber, totalFrames) {
-    if (!layer?.buffer) return layer;
-    
-    // Get time info
-    const timeInfo = this.#getTimeInfo(frameNumber);
-    if (!timeInfo.active) return layer;
-    
-    const t = timeInfo.t;
-    
-    // Get layer metadata
-    const metadata = await sharp(layer.buffer).metadata();
-    const { width, height } = metadata;
-    
-    // Create canvas using Canvas2dFactory
-    const canvas = await Canvas2dFactory.getNewCanvas(width, height);
+    try {
+      console.log(`[TacticalPulseGrid] invoke called for frame ${frameNumber}/${totalFrames}`);
+      
+      if (!layer) {
+        console.warn(`[TacticalPulseGrid] No layer object at frame ${frameNumber}`);
+        return layer;
+      }
+      
+      // Get time info
+      const timeInfo = this.#getTimeInfo(frameNumber);
+      console.log(`[TacticalPulseGrid] Schedule:`, JSON.stringify(this.schedule));
+      console.log(`[TacticalPulseGrid] Frame ${frameNumber} - Active: ${timeInfo.active}${timeInfo.active ? `, t: ${timeInfo.t.toFixed(3)}` : ''}`);
+      
+      if (!timeInfo.active) {
+        console.log(`[TacticalPulseGrid] Frame ${frameNumber} not in active window, skipping`);
+        return layer;
+      }
+      
+      const t = timeInfo.t;
+      
+      // Get layer metadata and store dimensions
+      const layerBuffer = await layer.toBuffer ? await layer.toBuffer() : layer.buffer;
+      const metadata = await sharp(layerBuffer).metadata();
+      const { width, height } = metadata;
+      
+      // Store dimensions for use in other methods
+      this.width = width;
+      this.height = height;
+      
+      // Generate grid positions with actual dimensions
+      const gridPositions = this.#generateGridPositions(width, height);
+      
+      // Create canvas using Canvas2dFactory
+      const canvas = await Canvas2dFactory.getNewCanvas(width, height);
     
     // Draw grid cells with pulse activation using Canvas2d API
     const gridRgb = hexToRgb(this.config.gridColor);
@@ -496,7 +514,8 @@ export class TacticalPulseGridEffect extends LayerEffect {
     const centerY = height / 2;
     
     // Draw grid cells with pulse activation
-    for (const pos of this.gridPositions) {
+    for (let cellIdx = 0; cellIdx < gridPositions.length; cellIdx++) {
+      const pos = gridPositions[cellIdx];
       const activation = this.#calculatePulseActivation(pos.x, pos.y, t, centerX, centerY);
       const cellOpacity = this.config.gridOpacity + activation * this.config.pulseIntensity;
       
@@ -520,7 +539,7 @@ export class TacticalPulseGridEffect extends LayerEffect {
         }
         // Close the path
         hexPath.push(hexPath[0]);
-        await canvas.drawPath(hexPath, lineWidth, colorHex, cellOpacity);
+        await canvas.drawPath(hexPath, lineWidth, colorHex, cellOpacity, null);
       } else if (this.config.gridMode === 'square') {
         // Build square path
         const half = this.config.cellSize / 2;
@@ -531,7 +550,7 @@ export class TacticalPulseGridEffect extends LayerEffect {
           { x: pos.x - half, y: pos.y + half },
           { x: pos.x - half, y: pos.y - half }
         ];
-        await canvas.drawPath(squarePath, lineWidth, colorHex, cellOpacity);
+        await canvas.drawPath(squarePath, lineWidth, colorHex, cellOpacity, null);
       } else if (this.config.gridMode === 'triangular') {
         // Build triangular path
         const triPath = [
@@ -540,7 +559,7 @@ export class TacticalPulseGridEffect extends LayerEffect {
           { x: pos.x - this.config.cellSize / 2, y: pos.y + this.config.cellSize / 2 },
           { x: pos.x, y: pos.y - this.config.cellSize / 2 }
         ];
-        await canvas.drawPath(triPath, lineWidth, colorHex, cellOpacity);
+        await canvas.drawPath(triPath, lineWidth, colorHex, cellOpacity, null);
       }
       
       // Add glow for activated cells
@@ -554,25 +573,41 @@ export class TacticalPulseGridEffect extends LayerEffect {
           });
         }
         glowPath.push(glowPath[0]);
-        await canvas.drawPath(glowPath, lineWidth * 0.5, colorHex, cellOpacity * 0.5);
+        await canvas.drawPath(glowPath, lineWidth * 0.5, colorHex, cellOpacity * 0.5, null);
       }
     }
     
     // Draw targeting reticles using Canvas2d API
     const reticleRgb = hexToRgb(this.config.reticleColor);
     for (let i = 0; i < this.config.reticleCount; i++) {
-      const reticle = this.#getReticlePosition(i, t);
+      const reticle = this.#getReticlePosition(i, t, width, height);
       const size = width * this.config.reticleSize;
       const reticleOpacity = reticle.isLocked ? 1.0 : 0.6;
       const reticleLineWidth = reticle.isLocked ? 3 : 2;
       
       const reticleColorHex = `#${reticleRgb.r.toString(16).padStart(2, '0')}${reticleRgb.g.toString(16).padStart(2, '0')}${reticleRgb.b.toString(16).padStart(2, '0')}`;
       
-      // Draw crosshair with drawLine2d
-      await canvas.drawLine2d(reticle.x - size/2, reticle.y, reticle.x - size/4, reticle.y, reticleLineWidth, reticleColorHex, reticleOpacity);
-      await canvas.drawLine2d(reticle.x + size/4, reticle.y, reticle.x + size/2, reticle.y, reticleLineWidth, reticleColorHex, reticleOpacity);
-      await canvas.drawLine2d(reticle.x, reticle.y - size/2, reticle.x, reticle.y - size/4, reticleLineWidth, reticleColorHex, reticleOpacity);
-      await canvas.drawLine2d(reticle.x, reticle.y + size/4, reticle.x, reticle.y + size/2, reticleLineWidth, reticleColorHex, reticleOpacity);
+      // Draw crosshair with drawLine2d (using point objects)
+      await canvas.drawLine2d(
+        { x: reticle.x - size/2, y: reticle.y },
+        { x: reticle.x - size/4, y: reticle.y },
+        reticleLineWidth, reticleColorHex, 0, null, reticleOpacity
+      );
+      await canvas.drawLine2d(
+        { x: reticle.x + size/4, y: reticle.y },
+        { x: reticle.x + size/2, y: reticle.y },
+        reticleLineWidth, reticleColorHex, 0, null, reticleOpacity
+      );
+      await canvas.drawLine2d(
+        { x: reticle.x, y: reticle.y - size/2 },
+        { x: reticle.x, y: reticle.y - size/4 },
+        reticleLineWidth, reticleColorHex, 0, null, reticleOpacity
+      );
+      await canvas.drawLine2d(
+        { x: reticle.x, y: reticle.y + size/4 },
+        { x: reticle.x, y: reticle.y + size/2 },
+        reticleLineWidth, reticleColorHex, 0, null, reticleOpacity
+      );
       
       // Draw circle using drawRing2d
       await canvas.drawRing2d(reticle.x, reticle.y, size/3, reticleColorHex, reticleOpacity);
@@ -584,32 +619,98 @@ export class TacticalPulseGridEffect extends LayerEffect {
         const bracketLineWidth = 2;
         
         // Top-left
-        await canvas.drawLine2d(reticle.x - size/2, reticle.y - size/2 + bracketSize, reticle.x - size/2, reticle.y - size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
-        await canvas.drawLine2d(reticle.x - size/2, reticle.y - size/2, reticle.x - size/2 + bracketSize, reticle.y - size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
+        await canvas.drawLine2d(
+          { x: reticle.x - size/2, y: reticle.y - size/2 + bracketSize },
+          { x: reticle.x - size/2, y: reticle.y - size/2 },
+          bracketLineWidth, reticleColorHex, 0, null, reticleOpacity
+        );
+        await canvas.drawLine2d(
+          { x: reticle.x - size/2, y: reticle.y - size/2 },
+          { x: reticle.x - size/2 + bracketSize, y: reticle.y - size/2 },
+          bracketLineWidth, reticleColorHex, 0, null, reticleOpacity
+        );
         
         // Top-right
-        await canvas.drawLine2d(reticle.x + size/2 - bracketSize, reticle.y - size/2, reticle.x + size/2, reticle.y - size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
-        await canvas.drawLine2d(reticle.x + size/2, reticle.y - size/2, reticle.x + size/2, reticle.y - size/2 + bracketSize, bracketLineWidth, reticleColorHex, reticleOpacity);
+        await canvas.drawLine2d(
+          { x: reticle.x + size/2 - bracketSize, y: reticle.y - size/2 },
+          { x: reticle.x + size/2, y: reticle.y - size/2 },
+          bracketLineWidth, reticleColorHex, 0, null, reticleOpacity
+        );
+        await canvas.drawLine2d(
+          { x: reticle.x + size/2, y: reticle.y - size/2 },
+          { x: reticle.x + size/2, y: reticle.y - size/2 + bracketSize },
+          bracketLineWidth, reticleColorHex, 0, null, reticleOpacity
+        );
         
         // Bottom-right
-        await canvas.drawLine2d(reticle.x + size/2, reticle.y + size/2 - bracketSize, reticle.x + size/2, reticle.y + size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
-        await canvas.drawLine2d(reticle.x + size/2, reticle.y + size/2, reticle.x + size/2 - bracketSize, reticle.y + size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
+        await canvas.drawLine2d(
+          { x: reticle.x + size/2, y: reticle.y + size/2 - bracketSize },
+          { x: reticle.x + size/2, y: reticle.y + size/2 },
+          bracketLineWidth, reticleColorHex, 0, null, reticleOpacity
+        );
+        await canvas.drawLine2d(
+          { x: reticle.x + size/2, y: reticle.y + size/2 },
+          { x: reticle.x + size/2 - bracketSize, y: reticle.y + size/2 },
+          bracketLineWidth, reticleColorHex, 0, null, reticleOpacity
+        );
         
         // Bottom-left
-        await canvas.drawLine2d(reticle.x - size/2 + bracketSize, reticle.y + size/2, reticle.x - size/2, reticle.y + size/2, bracketLineWidth, reticleColorHex, reticleOpacity);
-        await canvas.drawLine2d(reticle.x - size/2, reticle.y + size/2, reticle.x - size/2, reticle.y + size/2 - bracketSize, bracketLineWidth, reticleColorHex, reticleOpacity);
+        await canvas.drawLine2d(
+          { x: reticle.x - size/2 + bracketSize, y: reticle.y + size/2 },
+          { x: reticle.x - size/2, y: reticle.y + size/2 },
+          bracketLineWidth, reticleColorHex, 0, null, reticleOpacity
+        );
+        await canvas.drawLine2d(
+          { x: reticle.x - size/2, y: reticle.y + size/2 },
+          { x: reticle.x - size/2, y: reticle.y + size/2 - bracketSize },
+          bracketLineWidth, reticleColorHex, 0, null, reticleOpacity
+        );
       }
     }
     
-    // Convert canvas to layer using Canvas2dFactory
-    let resultLayer = await canvas.convertToLayer();
+    // Convert canvas to layer manually (canvas.convertToLayer() has a bug where it doesn't pass finalImageSize config)
+    console.log(`[TacticalPulseGrid] Converting canvas to layer for frame ${frameNumber}...`);
     
-    // Apply opacity
+    if (!canvas.strategy || !canvas.strategy._generateSVG) {
+      console.error('[TacticalPulseGrid] ERROR: canvas.strategy or _generateSVG not available!');
+      console.error('[TacticalPulseGrid] canvas keys:', Object.keys(canvas));
+      console.error('[TacticalPulseGrid] canvas.strategy:', canvas.strategy);
+      return layer;
+    }
+    
+    const svgContent = canvas.strategy._generateSVG();
+    console.log(`[TacticalPulseGrid] SVG content generated, length: ${svgContent.length}`);
+    
+    const pngBuffer = await sharp(Buffer.from(svgContent))
+      .png()
+      .toBuffer();
+    console.log(`[TacticalPulseGrid] PNG buffer created, size: ${pngBuffer.length} bytes`);
+    
+    const resultLayer = await LayerFactory.getLayerFromBuffer(pngBuffer, {
+      finalImageSize: {
+        width: width,
+        height: height,
+        longestSide: Math.max(width, height),
+        shortestSide: Math.min(width, height),
+      },
+      workingDirectory: null,
+      layerStrategy: 'sharp',
+    });
+    
+    console.log(`[TacticalPulseGrid] Result layer created, buffer available:`, !!resultLayer?.buffer);
+    
+    // Apply opacity and composite
     await resultLayer.adjustLayerOpacity(this.config.layerOpacity);
+    console.log(`[TacticalPulseGrid] Opacity applied`);
     
-    // Composite over original layer
     await layer.compositeLayerOver(resultLayer);
+    console.log(`[TacticalPulseGrid] Layer composited successfully for frame ${frameNumber}`);
     
     return layer;
+    } catch (error) {
+      console.error(`[TacticalPulseGrid] ERROR in invoke (frame ${frameNumber}):`, error.message);
+      console.error(`[TacticalPulseGrid] Stack:`, error.stack);
+      return layer;
+    }
   }
 }
